@@ -5,7 +5,7 @@ import 'package:appbeebuzz/style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter_contacts/flutter_contacts.dart';
+// import 'package:flutter_contacts/flutter_contacts.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -17,11 +17,27 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final SmsQuery _query = SmsQuery();
   List<SmsMessage> _messages = [];
+  // List<Contact>? _contacts;
+  bool _permissionDenied = false;
 
   @override
   void initState() {
-    roadSMS();
     super.initState();
+    roadSMSTest();
+  }
+
+  Future roadSMSTest() async {
+    var permission = await Permission.sms.request();
+    if (!permission.isGranted) {
+      setState(() => _permissionDenied = true);
+    } else {
+      final messages =
+          await _query.querySms(kinds: [SmsQueryKind.inbox], count: 10);
+      // debugPrint('sms inbox messages: ${messages.length}');
+      setState(() {
+        _messages = messages;
+      });
+    }
   }
 
   @override
@@ -39,62 +55,44 @@ class _MyAppState extends State<MyApp> {
             },
           ),
         ),
-        body: _messages.isEmpty
-            ? Scaffold(
-                backgroundColor: bgYellow,
-                body: const Center(child: CircularProgressIndicator()))
-            : Scaffold(
-                backgroundColor: bgYellow,
-                body: Column(
-                  children: [
-                    Container(
-                        padding: const EdgeInsets.all(10.0),
-                        child: RefreshIndicator(
-                          onRefresh: roadSMS,
-                          child: messagesListView(_messages),
-                        )),
-                    TextButton(
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) =>
-                                      const ContactsExample()));
-                        },
-                        child: const Text('Contacts')),
-                    TextButton(
-                        onPressed: () {
-                          // roadSMS();
-                          Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) =>
-                                      TestLastSMS(messages: _messages)));
-                        },
-                        child: const Text('Test'))
-                  ],
-                ),
-              ));
+        body: _body());
   }
 
-  Future<bool> roadSMS() async {
-    bool res = false;
-    var permission = await Permission.sms.status;
-    if (permission.isGranted) {
-      final messages = await _query.querySms(
-        kinds: [
-          SmsQueryKind.inbox
-        ],
-        count: 5,
-      );
-      debugPrint('sms inbox messages: ${messages.length}');
-      setState(() => _messages = messages);
-
-      res = true;
-    } else {
-      await Permission.sms.request();
+  Widget _body() {
+    if (_permissionDenied) {
+      return const Center(child: Text('Permission denied'));
     }
-    return res;
+    if (_messages.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: roadSMSTest,
+        child: Scaffold(
+            backgroundColor: bgYellow,
+            body: const Center(child: CircularProgressIndicator())),
+      );
+    }
+    return Scaffold(
+      backgroundColor: bgYellow,
+      body: Column(
+        children: [
+          Container(
+              padding: const EdgeInsets.all(10.0),
+              child: RefreshIndicator(
+                onRefresh: roadSMSTest,
+                child: messagesListView(_messages),
+              )),
+          TextButton(
+              onPressed: () {
+                // roadSMS();
+                Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            TestLastSMS(messages: _messages)));
+              },
+              child: const Text('Test'))
+        ],
+      ),
+    );
   }
 }
 
@@ -163,83 +161,4 @@ Widget messagesListView(List<SmsMessage> messages) {
               ]));
         },
       ));
-}
-
-class ContactsExample extends StatefulWidget {
-  const ContactsExample({super.key});
-
-  @override
-  ContactsExampleState createState() => ContactsExampleState();
-}
-
-class ContactsExampleState extends State<ContactsExample> {
-  List<Contact>? _contacts;
-  bool _permissionDenied = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchContacts();
-  }
-
-  Future _fetchContacts() async {
-    if (!await FlutterContacts.requestPermission(readonly: true)) {
-      setState(() => _permissionDenied = true);
-    } else {
-      final contacts = await FlutterContacts.getContacts();
-      setState(() => _contacts = contacts);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-      appBar: AppBar(
-        centerTitle: false,
-        title: Text("Contacts", style: textHead),
-        backgroundColor: mainScreen,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pushReplacement(context,
-                MaterialPageRoute(builder: (context) => const MyApp()));
-          },
-        ),
-      ),
-      body: Scaffold(body: _body()));
-
-  Widget _body() {
-    if (_permissionDenied) {
-      return const Center(child: Text('Permission denied'));
-    }
-    if (_contacts == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    return ListView.builder(
-        itemCount: _contacts!.length,
-        itemBuilder: (context, i) => ListTile(
-            title: Text(_contacts![i].displayName),
-            onTap: () async {
-              final fullContact =
-                  await FlutterContacts.getContact(_contacts![i].id);
-              await Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => ContactPage(fullContact!)));
-            }));
-  }
-}
-
-class ContactPage extends StatelessWidget {
-  final Contact contact;
-  const ContactPage(this.contact, {super.key});
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-      appBar: AppBar(title: Text(contact.displayName)),
-      body: Column(children: [
-        Text('First name: ${contact.name.first}'),
-        Text('Last name: ${contact.name.last}'),
-        Text(
-            'Phone number: ${contact.phones.isNotEmpty ? contact.phones.first.number : '(none)'}'),
-        Text(
-            'Email address: ${contact.emails.isNotEmpty ? contact.emails.first.address : '(none)'}'),
-      ]));
 }

@@ -3,6 +3,7 @@ import 'package:appbeebuzz/pages/accPage.dart';
 import 'package:appbeebuzz/pages/login.dart';
 import 'package:appbeebuzz/pages/filterPage.dart';
 import 'package:appbeebuzz/pages/showmsg.dart';
+import 'package:appbeebuzz/pages/test.dart';
 import 'package:appbeebuzz/style.dart';
 import 'package:appbeebuzz/utils/auth_methods.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -141,6 +142,14 @@ class _AllsmsState extends State<Allsms> {
               onTap: () {
                 Navigator.pushReplacement(context,
                     MaterialPageRoute(builder: (context) => MyApp()));
+              }),
+          ListTile(
+              leading:
+                  FaIcon(FontAwesomeIcons.envelope, size: 20, color: grayBar),
+              title: Text('Contacts', style: textBar),
+              onTap: () {
+                Navigator.pushReplacement(context,
+                    MaterialPageRoute(builder: (context) => ContactsExample()));
               }),
           ListTile(
             leading: FaIcon(UniconsLine.user, size: 20, color: grayBar),
