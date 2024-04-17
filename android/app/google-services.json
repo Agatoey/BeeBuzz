@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "58208670388",
+    "project_id": "app-beebuzz",
+    "storage_bucket": "app-beebuzz.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:58208670388:android:e43b60b73de6ed4ff7fde1",
+        "android_client_info": {
+          "package_name": "com.example.appbeebuzz"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "58208670388-6k92u4ai181s8m7m4gu6n2874nn45muh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.appbeebuzz",
+            "certificate_hash": "b986815c6d1419ad3388b23e34782b3bff72c39c"
+          }
+        },
+        {
+          "client_id": "58208670388-k4k3811q9kci7i0trukp0m7ava80euga.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4qTdLQGOus3zi7jgQXZALImTlhW01Rjc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "58208670388-k4k3811q9kci7i0trukp0m7ava80euga.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
