@@ -2,20 +2,19 @@ import 'package:appbeebuzz/pages/allSMS.dart';
 import 'package:appbeebuzz/constant.dart';
 import 'package:appbeebuzz/style.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
 
 class ShowMsg extends StatefulWidget {
   const ShowMsg({
     super.key,
     required this.message,
-    required this.phoneNumber,
     required this.name,
-    required this.state,
+    // required this.state,
   });
 
-  final List message;
-  final String phoneNumber;
+  final List<SmsMessage> message;
   final String name;
-  final List state;
+  // final List state;
 
   @override
   State<ShowMsg> createState() => _ShowMsgState();
@@ -62,29 +61,39 @@ class _ShowMsgState extends State<ShowMsg> {
                               borderRadius: BorderRadius.circular(5))),
                       child: Padding(
                         padding: const EdgeInsets.all(5),
-                        child: Text(widget.message[index], style: textmsg),
+                        child: Text(widget.message[index].body.toString(), style: textmsg),
                       )),
                   Container(
                     height: 10,
                   ),
-                  widget.state[index] != 0
-                      ? Row(
+                  Row(
                           children: [
-                            widget.state[index] == 1
-                                ? const Icon(Icons.error,
-                                    size: 17, color: Color(0xFFFCE205))
-                                : const Icon(Icons.error,
+                            const Icon(Icons.error,
                                     size: 17, color: Color(0xFFFF2F00)),
                             Container(
                                 padding: const EdgeInsets.only(left: 10),
-                                child: widget.state[index] == 1
-                                    ? Text('ระดับความเสี่ยง : ปานกลาง',
-                                        style: texterro)
-                                    : Text('ระดับความเสี่ยง : สูง',
+                                child: Text('ระดับความเสี่ยง : สูง',
                                         style: texterro))
                           ],
                         )
-                      : Container()
+                  // widget.state[index] != 0
+                  //     ? Row(
+                  //         children: [
+                  //           widget.state[index] == 1
+                  //               ? const Icon(Icons.error,
+                  //                   size: 17, color: Color(0xFFFCE205))
+                  //               : const Icon(Icons.error,
+                  //                   size: 17, color: Color(0xFFFF2F00)),
+                  //           Container(
+                  //               padding: const EdgeInsets.only(left: 10),
+                  //               child: widget.state[index] == 1
+                  //                   ? Text('ระดับความเสี่ยง : ปานกลาง',
+                  //                       style: texterro)
+                  //                   : Text('ระดับความเสี่ยง : สูง',
+                  //                       style: texterro))
+                  //         ],
+                  //       )
+                      // : Container()
                 ],
               ),
             ));

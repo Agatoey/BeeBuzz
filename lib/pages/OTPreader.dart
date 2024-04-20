@@ -50,22 +50,22 @@ class _OTPreaderState extends State<OTPreader> {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          Pinput(
-            length: 6,
-            showCursor: true,
-            defaultPinTheme: PinTheme(
-                constraints: BoxConstraints.expand(height: 60, width: 60),
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    color: Colors.white),
-                textStyle:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.w300)),
-            onSubmitted: (val) {
-              setState(() {
-                otpCode = val;
-              });
-            },
-          ),
+          // Pinput(
+          //   length: 6,
+          //   showCursor: true,
+          //   defaultPinTheme: PinTheme(
+          //       constraints: BoxConstraints.expand(height: 60, width: 60),
+          //       decoration: BoxDecoration(
+          //           borderRadius: BorderRadius.circular(10),
+          //           color: Colors.white),
+          //       textStyle:
+          //           const TextStyle(fontSize: 20, fontWeight: FontWeight.w300)),
+          //   onSubmitted: (val) {
+          //     setState(() {
+          //       otpCode = val;
+          //     });
+          //   },
+          // ),
           TextFormField(
               controller: otpController,
               keyboardType: TextInputType.phone,

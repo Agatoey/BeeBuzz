@@ -1,11 +1,11 @@
 import 'package:appbeebuzz/constant.dart';
 import 'package:appbeebuzz/pages/allSMS.dart';
-import 'package:appbeebuzz/pages/test.dart';
+import 'package:appbeebuzz/pages/testContact1.dart';
 import 'package:appbeebuzz/style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
 import 'package:permission_handler/permission_handler.dart';
-// import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -17,13 +17,22 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final SmsQuery _query = SmsQuery();
   List<SmsMessage> _messages = [];
-  // List<Contact>? _contacts;
+  List<Contact>? _contacts;
   bool _permissionDenied = false;
 
   @override
   void initState() {
     super.initState();
     roadSMSTest();
+    // getName("0821308781");
+  }
+
+  Future _fetchData() async {
+    var permission = await FlutterContacts.requestPermission(readonly: true);
+    final contacts = await FlutterContacts.getContacts(withPhoto: true);
+    if (permission) {
+      setState(() => _contacts = contacts);
+    }
   }
 
   Future roadSMSTest() async {
@@ -32,12 +41,24 @@ class _MyAppState extends State<MyApp> {
       setState(() => _permissionDenied = true);
     } else {
       final messages =
-          await _query.querySms(kinds: [SmsQueryKind.inbox], count: 10);
-      // debugPrint('sms inbox messages: ${messages.length}');
+          await _query.querySms(kinds: [SmsQueryKind.inbox], count: 100);
       setState(() {
         _messages = messages;
       });
+      _fetchData();
     }
+  }
+
+  String getName(String sender) {
+    for (var i = 0; i < _contacts!.length;) {
+      var contact = _contacts![i];
+      if (sender == contact.phones.elementAt(0).number) {
+        print("เบอร์ ${contact.phones.first.number}");
+        return contact.phones.first.number;
+      }
+      return sender;
+    }
+    return "Unknow";
   }
 
   @override
@@ -80,50 +101,41 @@ class _MyAppState extends State<MyApp> {
                 onRefresh: roadSMSTest,
                 child: messagesListView(_messages),
               )),
-          TextButton(
-              onPressed: () {
-                // roadSMS();
-                Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) =>
-                            TestLastSMS(messages: _messages)));
-              },
-              child: const Text('Test'))
+          TextButton(onPressed: () {}, child: const Text('Test'))
         ],
       ),
     );
   }
-}
 
-Widget messagesListView(List<SmsMessage> messages) {
-  Map<String, List<SmsMessage>> messagesBySender = {};
+  Widget messagesListView(List<SmsMessage> messages) {
+    Map<String, List<SmsMessage>> messagesBySender = {};
 
-  void testsms() {
-    for (var message in messages) {
-      var sender = message.sender;
-      if (!messagesBySender.containsKey(sender)) {
-        messagesBySender[sender.toString()] = [];
+    void testsms() {
+      for (var message in messages) {
+        var sender = message.sender;
+        if (!messagesBySender.containsKey(sender)) {
+          messagesBySender[sender.toString()] = [];
+        }
+        messagesBySender[sender]?.add(message);
       }
-      messagesBySender[sender]?.add(message);
     }
-  }
 
-  testsms();
-  return Container(
-      height: 600,
-      margin: const EdgeInsets.only(top: 20, bottom: 20),
-      decoration: ShapeDecoration(
-          color: Colors.white.withOpacity(0.7),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(21))),
-      child: ListView.builder(
-        itemCount: messagesBySender.length,
-        itemBuilder: (context, index) {
-          String sender = messagesBySender.keys.toList()[index];
-          List<SmsMessage>? messages = messagesBySender[sender];
-          SmsMessage message = messages![0];
-          return ListTile(
+    testsms();
+    return Container(
+        height: 500,
+        margin: const EdgeInsets.only(top: 20, bottom: 20),
+        decoration: ShapeDecoration(
+            color: Colors.white.withOpacity(0.7),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(21))),
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: messagesBySender.length,
+          itemBuilder: (context, index) {
+            String sender = messagesBySender.keys.toList()[index];
+            List<SmsMessage>? messages = messagesBySender[sender];
+            SmsMessage message = messages![0];
+            return ListTile(
               title: Text(sender,
                   style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: Text('${message.body}',
@@ -158,7 +170,10 @@ Widget messagesListView(List<SmsMessage> messages) {
                                 color: Colors.white,
                                 Icons.priority_high,
                                 size: 18))))
-              ]));
-        },
-      ));
+              ]),
+              onTap: () {},
+            );
+          },
+        ));
+  }
 }

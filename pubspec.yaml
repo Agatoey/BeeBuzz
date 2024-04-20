@@ -54,6 +54,7 @@ dependencies:
   sms_plugin_mp: ^0.0.3
   pinput: ^4.0.0
   flutter_contacts: ^1.1.7+1
+  contacts_service: ^0.6.3
 
 dev_dependencies:
   flutter_test:
