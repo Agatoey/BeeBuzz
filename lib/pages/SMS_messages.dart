@@ -1,7 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:appbeebuzz/constant.dart';
 import 'package:appbeebuzz/pages/allSMS.dart';
-import 'package:appbeebuzz/pages/testContact1.dart';
 import 'package:appbeebuzz/style.dart';
+import 'package:appbeebuzz/widgets/getName.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -24,7 +26,6 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     roadSMSTest();
-    // getName("0821308781");
   }
 
   Future _fetchData() async {
@@ -45,21 +46,51 @@ class _MyAppState extends State<MyApp> {
       setState(() {
         _messages = messages;
       });
+      // await FlutterContacts.requestPermission(readonly: true);
       _fetchData();
     }
   }
 
-  String getName(String sender) {
-    for (var i = 0; i < _contacts!.length;) {
-      var contact = _contacts![i];
-      if (sender == contact.phones.elementAt(0).number) {
-        print("เบอร์ ${contact.phones.first.number}");
-        return contact.phones.first.number;
+  Future<String?> getName(String sender) async {
+    for (final contact in _contacts!) {
+      final _contact = await FlutterContacts.getContact(contact.id);
+      if (_contact!.phones.isNotEmpty) {
+        if (sender == _contact.phones.first.number) {
+          print(_contact.phones.first.number);
+          return _contact.displayName;
+        }
       }
-      return sender;
     }
-    return "Unknow";
+    return null;
   }
+
+  Future<Uint8List?> getImage(String sender) async {
+    for (final contact in _contacts!) {
+      final _contact = await FlutterContacts.getContact(contact.id);
+      if (_contact!.phones.isNotEmpty) {
+        if (sender == _contact.phones.first.number &&
+            _contact.photo!.isNotEmpty) {
+          // print(_contact.phones.first.number);
+          return _contact.photo;
+        }
+      }
+    }
+    return null;
+  }
+
+  // Future<Contact?> getName(String sender) async {
+  //   for (final contact in _contacts!) {
+  //     final _contact = await FlutterContacts.getContact(contact.id);
+  //     if (_contact!.phones.isNotEmpty) {
+  //       // print(_contact.phones.first.number);
+  //       if (sender == _contact.phones.first.number) {
+  //         print(_contact.phones.first.number);
+  //         return _contact;
+  //       }
+  //     }
+  //   }
+  //   return null;
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -136,25 +167,49 @@ class _MyAppState extends State<MyApp> {
             List<SmsMessage>? messages = messagesBySender[sender];
             SmsMessage message = messages![0];
             return ListTile(
-              title: Text(sender,
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              title: FutureBuilder<String?>(
+                future: getName(sender),
+                builder:
+                    (BuildContext context, AsyncSnapshot<String?> snapshot) {
+                  if (snapshot.hasData) {
+                    return Text('${snapshot.data}',
+                        style: const TextStyle(fontWeight: FontWeight.bold));
+                  }
+                  return Text(sender,
+                      style: const TextStyle(fontWeight: FontWeight.bold));
+                },
+              ),
               subtitle: Text('${message.body}',
                   overflow: TextOverflow.ellipsis,
                   softWrap: false,
                   maxLines: 1),
               leading: Stack(children: [
                 Container(
-                  height: 50,
-                  width: 50,
-                  decoration: ShapeDecoration(
-                      color: const Color(0xFFCB9696),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(100))),
-                  child: Image.asset(
-                    "assets/images/profile.png",
-                    fit: BoxFit.fitWidth,
-                  ),
-                ),
+                    height: 50,
+                    width: 50,
+                    decoration: ShapeDecoration(
+                        color: const Color(0xFFCB9696),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(100))),
+                    child:
+                        // Image.asset(
+                        //   "assets/images/profile.png",
+                        //   fit: BoxFit.fitWidth,
+                        // )
+                        FutureBuilder<Uint8List?>(
+                      future: getImage(sender),
+                      builder: (BuildContext context,
+                          AsyncSnapshot<Uint8List?> snapshot) {
+                        if (snapshot.hasData) {
+                          return CircleAvatar(
+                              backgroundImage: MemoryImage(snapshot.data!));
+                        }
+                        return Image.asset(
+                          "assets/images/profile.png",
+                          fit: BoxFit.fitWidth,
+                        );
+                      },
+                    )),
                 Positioned(
                     bottom: 0,
                     right: 0,

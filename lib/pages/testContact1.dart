@@ -28,8 +28,22 @@ class ContactsExampleState extends State<ContactsExample> {
       setState(() => _permissionDenied = true);
     } else {
       final contacts = await FlutterContacts.getContacts(withPhoto: true);
-      print(contacts[0].displayName);
+      // print(contacts[0].phones[0].number);
       setState(() => _contacts = contacts);
+      getName("0821308781");
+    }
+  }
+
+  Future getName(String sender) async {
+    for (final contact in _contacts!) {
+      final _contact = await FlutterContacts.getContact(contact.id);
+      if (_contact!.phones.isNotEmpty) {
+        // print(_contact.phones.first.number);
+        if (sender == _contact.phones.first.number) {
+          print(_contact.phones.first.number);
+          return;
+        } else {}
+      }
     }
   }
 
@@ -112,7 +126,9 @@ class ContactPage extends StatelessWidget {
       body: Column(children: [
         Text('First name: ${contact.name.first}'),
         Text('Last name: ${contact.name.last}'),
-        Text('Phone number: ${contact.phones.isNotEmpty ? contact.phones.first.number : '(none)'}'),
-        Text('Email address: ${contact.emails.isNotEmpty ? contact.emails.first.address : '(none)'}'),
+        Text(
+            'Phone number: ${contact.phones.isNotEmpty ? contact.phones.first.number : '(none)'}'),
+        Text(
+            'Email address: ${contact.emails.isNotEmpty ? contact.emails.first.address : '(none)'}'),
       ]));
 }
