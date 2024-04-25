@@ -12,7 +12,7 @@ class ShowMsg extends StatefulWidget {
     // required this.state,
   });
 
-  final List<SmsMessage> message;
+  final List message;
   final String name;
   // final List state;
 
@@ -61,21 +61,21 @@ class _ShowMsgState extends State<ShowMsg> {
                               borderRadius: BorderRadius.circular(5))),
                       child: Padding(
                         padding: const EdgeInsets.all(5),
-                        child: Text(widget.message[index].body.toString(), style: textmsg),
+                        child: Text(widget.message[index].body.toString(),
+                            style: textmsg),
                       )),
                   Container(
                     height: 10,
                   ),
                   Row(
-                          children: [
-                            const Icon(Icons.error,
-                                    size: 17, color: Color(0xFFFF2F00)),
-                            Container(
-                                padding: const EdgeInsets.only(left: 10),
-                                child: Text('ระดับความเสี่ยง : สูง',
-                                        style: texterro))
-                          ],
-                        )
+                    children: [
+                      const Icon(Icons.error,
+                          size: 17, color: Color(0xFFFF2F00)),
+                      Container(
+                          padding: const EdgeInsets.only(left: 10),
+                          child: Text('ระดับความเสี่ยง : สูง', style: texterro))
+                    ],
+                  )
                   // widget.state[index] != 0
                   //     ? Row(
                   //         children: [
@@ -93,7 +93,7 @@ class _ShowMsgState extends State<ShowMsg> {
                   //                       style: texterro))
                   //         ],
                   //       )
-                      // : Container()
+                  // : Container()
                 ],
               ),
             ));
