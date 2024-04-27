@@ -6,7 +6,7 @@ enum ChipPosition { above, below }
 
 class ChipTags extends StatefulWidget {
   const ChipTags({
-    Key? key,
+    super.key,
     this.iconColor,
     this.chipColor,
     this.textColor,
@@ -16,63 +16,143 @@ class ChipTags extends StatefulWidget {
     this.createTagOnSubmit = false,
     this.chipPosition = ChipPosition.below,
     required this.list,
-  }) : super(key: key);
+    required this.inputController,
+  });
 
-  ///sets the remove icon Color
   final Color? iconColor;
-
-  ///sets the chip background color
   final Color? chipColor;
-
-  ///sets the color of text inside chip
   final Color? textColor;
-
-  ///container decoration
   final InputDecoration? decoration;
-
-  ///set keyboradType
   final TextInputType? keyboardType;
-
-  ///customer symbol to seprate tags by default
-  ///it is " " space.
   final String? separator;
-
-  /// list of String to display
   final List<String> list;
-
   final ChipPosition chipPosition;
-
-  /// Default `createTagOnSumit = false`
-  /// Creates new tag if user submit.
-  /// If true they separtor will be ignored.
   final bool createTagOnSubmit;
+  final TextEditingController inputController;
 
   @override
-  _ChipTagsState createState() => _ChipTagsState();
+  State<ChipTags> createState() => _ChipTagsState();
 }
 
 class _ChipTagsState extends State<ChipTags>
     with SingleTickerProviderStateMixin {
-  FocusNode _focusNode = FocusNode();
+  final FocusNode _focusNode = FocusNode();
 
   ///Form key for TextField
   final _formKey = GlobalKey<FormState>();
-  TextEditingController _inputController = TextEditingController();
+  late bool visible;
+
+  @override
+  void initState() {
+    visible = false;
+    visibleState();
+    super.initState();
+  }
+
+  visibleState() {
+    if (widget.inputController.text.isEmpty) {
+      setState(() {
+        visible = false;
+      });
+      print("สถานะ isEmpty $visible");
+    }
+    if (widget.inputController.text.isNotEmpty) {
+      setState(() {
+        visible = true;
+      });
+      print("${widget.inputController.text} สถานะ isNotEmpty $visible");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.max,
-      children: <Widget>[
-        Visibility(
-            visible: widget.chipPosition == ChipPosition.above,
-            child: _chipListPreview()),
-        textFormField(),
-        Visibility(
-            visible: widget.chipPosition == ChipPosition.below,
-            child: _chipListPreview()),
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.max,
+          children: <Widget>[
+            Visibility(
+                visible: widget.chipPosition == ChipPosition.above,
+                child: _chipListPreview()),
+            textFormField(),
+            Visibility(
+                visible: widget.chipPosition == ChipPosition.below,
+                child: _chipListPreview()),
+          ],
+        ),
+        Visibility(visible: visible == false, child: _info()),
+        Visibility(visible: visible == true, child: _info2()),
       ],
     );
+  }
+
+  Widget _info() {
+    return const Positioned(
+        top: 250,
+        child: Column(
+          children: [
+            Text("Messages Filter",
+                style: TextStyle(
+                    fontFamily: "Inter",
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600)),
+            SizedBox(height: 10),
+            Text(
+              "สกรีนข้อความเบื้องต้น ด้วยคำที่คุณไม่อยากเห็น",
+              style: TextStyle(
+                  fontFamily: "Kanit",
+                  color: Color(0xFF636363),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400),
+            ),
+          ],
+        ));
+  }
+
+  Widget _info2() {
+    return Positioned(
+        top: 250,
+        child: Row(
+          children: [
+            const Text(
+              "กด",
+              style: TextStyle(
+                  fontFamily: "Inter",
+                  color: Color(0xFF636363),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400),
+            ),
+            Container(
+              alignment: Alignment.center,
+              margin: const EdgeInsets.symmetric(horizontal: 5),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.expand(height: 25, width: 25),
+              decoration: ShapeDecoration(
+                  color: const Color(0xB951D968),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(9))),
+              child: Text(
+                String.fromCharCode(Icons.check.codePoint),
+                style: TextStyle(
+                  inherit: false,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: Icons.check.fontFamily,
+                ),
+              ),
+            ),
+            const Text(
+              "เพื่อเพิ่มคำ",
+              style: TextStyle(
+                  fontFamily: "Inter",
+                  color: Color(0xFF636363),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400),
+            ),
+          ],
+        ));
   }
 
   Widget textFormField() {
@@ -90,7 +170,12 @@ class _ChipTagsState extends State<ChipTags>
             child: TextField(
               maxLines: 1,
               textAlignVertical: TextAlignVertical.center,
-              controller: _inputController,
+              controller: widget.inputController,
+              style: const TextStyle(
+                  fontFamily: "Kanit",
+                  fontWeight: FontWeight.normal,
+                  fontSize: 15,
+                  color: Color(0xFF636363)),
               decoration: widget.decoration ??
                   InputDecoration(
                     contentPadding:
@@ -114,7 +199,7 @@ class _ChipTagsState extends State<ChipTags>
                       widget.list.add(value);
 
                       ///setting the controller to empty
-                      _inputController.clear();
+                      widget.inputController.clear();
 
                       ///resetting form
                       _formKey.currentState!.reset();
@@ -127,25 +212,30 @@ class _ChipTagsState extends State<ChipTags>
               onChanged: widget.createTagOnSubmit
                   ? null
                   : (value) {
-                      ///check if user has send separator so that it can break the line
-                      ///and add that word to list
-                      if (value.endsWith(widget.separator ?? " ")) {
-                        ///check for ' ' and duplicate tags
-                        if (value != widget.separator &&
-                            !widget.list.contains(value.trim())) {
-                          widget.list.add(value
-                              .replaceFirst(widget.separator ?? " ", '')
-                              .trim());
+                      visibleState();
+                      if (widget.inputController.text.isNotEmpty) {
+                        ///check if user has send separator so that it can break the line
+                        ///and add that word to list
+                        if (value.endsWith(widget.separator ?? " ")) {
+                          ///check for ' ' and duplicate tags
+                          if (value != widget.separator &&
+                              !widget.list.contains(value.trim())) {
+                            widget.list.add(value
+                                .replaceFirst(widget.separator ?? " ", '')
+                                .trim());
+                          }
+
+                          ///setting the controller to empty
+                          widget.inputController.clear();
+
+                          ///resetting form
+                          _formKey.currentState!.reset();
+
+                          ///refersing the state to show new data
+                          setState(() {
+                            visible = false;
+                          });
                         }
-
-                        ///setting the controller to empty
-                        _inputController.clear();
-
-                        ///resetting form
-                        _formKey.currentState!.reset();
-
-                        ///refersing the state to show new data
-                        setState(() {});
                       }
                     },
             ),
@@ -176,7 +266,7 @@ class _ChipTagsState extends State<ChipTags>
               ),
               onPressed: () {
                 print(widget.list);
-                var value = _inputController.text;
+                var value = widget.inputController.text;
                 if (value.isNotEmpty) {
                   if (widget.createTagOnSubmit) {
                     return;
@@ -185,9 +275,12 @@ class _ChipTagsState extends State<ChipTags>
                       !widget.list.contains(value.trim())) {
                     widget.list.add(value);
                   }
-                  _inputController.clear();
+                  widget.inputController.clear();
                   _formKey.currentState!.reset();
-                  setState(() {});
+                  setState(() {
+                    visible = false;
+                  });
+                  print("สถานะ isEmpty $visible");
                 }
               },
             ))
@@ -195,42 +288,56 @@ class _ChipTagsState extends State<ChipTags>
     );
   }
 
-  Visibility _chipListPreview() {
-    return Visibility(
-      //if length is 0 it will not occupie any space
-      visible: widget.list.length > 0,
-      child: Wrap(
-        ///creating a list
-        children: widget.list.map((text) {
-          return Padding(
-              padding: const EdgeInsets.all(5.0),
-              child: FilterChip(
-                  shape: const StadiumBorder(
-                      side: BorderSide(style: BorderStyle.none)),
-                  backgroundColor: widget.chipColor ?? Colors.blue,
-                  label: Text(
-                    text,
-                    style: TextStyle(
-                        color: widget.textColor ?? Colors.white, fontSize: 16),
-                  ),
-                  deleteIcon: Text(
-                    String.fromCharCode(Icons.close.codePoint),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      inherit: false,
-                      fontSize: 25,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: Icons.close.fontFamily,
-                    ),
-                  ),
-                  padding: EdgeInsets.zero,
-                  onDeleted: () {
-                    widget.list.remove(text);
-                    setState(() {});
-                  },
-                  onSelected: (_) {}));
-        }).toList(),
+  Widget _chipListPreview() {
+    // print(widget.list);
+    return Container(
+      // color: Colors.white.withOpacity(0.7),
+      height: 180,
+      child: SingleChildScrollView(
+        child: Visibility(
+          //if length is 0 it will not occupie any space
+          visible: widget.list.length > 0,
+          child: Wrap(
+            children: widget.list
+                .map((text) {
+                  return Padding(
+                      padding: const EdgeInsets.all(5.0),
+                      child: FilterChip(
+                          shape: const StadiumBorder(
+                              side: BorderSide(style: BorderStyle.none)),
+                          backgroundColor: widget.chipColor ?? Colors.blue,
+                          label: Text(
+                            text,
+                            style: TextStyle(
+                                fontFamily: "Kanit",
+                                fontWeight: FontWeight.normal,
+                                color: widget.textColor ?? Colors.white,
+                                fontSize: 16),
+                          ),
+                          deleteIcon: Text(
+                            String.fromCharCode(Icons.close.codePoint),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              inherit: false,
+                              fontSize: 25,
+                              fontWeight: FontWeight.w600,
+                              fontFamily: Icons.close.fontFamily,
+                            ),
+                          ),
+                          padding: EdgeInsets.zero,
+                          onDeleted: () {
+                            widget.list.remove(text);
+                            setState(() {});
+                          },
+                          onSelected: (_) {}));
+                })
+                .toList()
+                .reversed
+                .toList(),
+          ),
+        ),
       ),
     );
   }
+
 }

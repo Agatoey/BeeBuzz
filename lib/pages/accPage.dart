@@ -39,6 +39,7 @@ class _AccPageState extends State<AccPage> {
       photoURL = user?.photoURL;
       email = user?.email;
       userid = user?.uid;
+      phoneNumber = user?.phoneNumber;
       print("AccPage: $photoURL");
     }
   }
@@ -61,88 +62,98 @@ class _AccPageState extends State<AccPage> {
       body: Scaffold(
           backgroundColor: bgYellow,
           body: Container(
-            margin: EdgeInsets.only(top: 120),
-            alignment: Alignment.topCenter,
+              margin: const EdgeInsets.only(top: 120),
+              alignment: Alignment.topCenter,
               child: Stack(
                   alignment: Alignment.center,
                   clipBehavior: Clip.none,
                   children: [
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 40),
-                  // width: 350,
-                  height: 320,
-                  decoration: ShapeDecoration(
-                    color: const Color(0xFFFDF9ED),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                    shadows: const [
-                      BoxShadow(
-                        color: Color(0x28000000),
-                        blurRadius: 12,
-                        offset: Offset(0, 0),
-                        spreadRadius: 0,
-                      )
-                    ],
-                  ),
-                ),
-                Container(
-                    padding: const EdgeInsets.only(top: 100),
-                    height: 300,
-                    width: 300,
-                    child: Column(children: [
-                      Text(
-                        username!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Color(0xFF36383C),
-                          fontSize: 24,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w600,
-                          height: 0,
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 40),
+                      // width: 350,
+                      height: 320,
+                      decoration: ShapeDecoration(
+                        color: const Color(0xFFFDF9ED),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(22),
                         ),
+                        shadows: const [
+                          BoxShadow(
+                            color: Color(0x28000000),
+                            blurRadius: 12,
+                            offset: Offset(0, 0),
+                            spreadRadius: 0,
+                          )
+                        ],
                       ),
-                      Container(
-                          padding: const EdgeInsets.symmetric(vertical: 7),
-                          child: Text('123 456 789', style: textAcc)),
-                      Container(
-                          padding: const EdgeInsets.symmetric(vertical: 5),
-                          child: Text(email!, style: textAcc)),
-                      Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          child: Container(
-                              width: 140,
-                              height: 37,
-                              decoration: ShapeDecoration(
-                                gradient: LinearGradient(
-                                  colors: [mainScreen, const Color(0xFFFFA031)],
-                                ),
-                                // color: const Color(0xFFFFA031),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(100)),
-                              ),
-                              child: TextButton(
-                                  onPressed: _showAlertDialog,
-                                  child: const Center(
-                                      child: Text("Delete Account",
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 18,
-                                              fontFamily: 'Inter',
-                                              fontWeight: FontWeight.w500,
-                                              height: 0))))))
-                    ])),
-                Positioned(
-                    top: -90,
-                    child: Container(
-                      width: 180,
-                      height: 180,
-                      clipBehavior: Clip.antiAlias,
-                      decoration: const BoxDecoration(shape: BoxShape.circle),
-                      child: Image.network(photoURL!, fit: BoxFit.cover),
-                    ))
-              ]))),
+                    ),
+                    Container(
+                        padding: const EdgeInsets.only(top: 100),
+                        height: 300,
+                        width: 300,
+                        child: Column(children: [
+                          Text(
+                            username!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Color(0xFF36383C),
+                              fontSize: 24,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w800,
+                              height: 0,
+                            ),
+                          ),
+                          Container(
+                              padding: const EdgeInsets.symmetric(vertical: 7),
+                              child: Text(
+                                  phoneNumber == null
+                                      ? ""
+                                      : phoneNumber!.trim(),
+                                  style: textAcc)),
+                          Container(
+                              padding: const EdgeInsets.symmetric(vertical: 5),
+                              child: Text(email == null ? "" : email!,
+                                  style: textAcc)),
+                          Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              child: Container(
+                                  width: 150,
+                                  height: 37,
+                                  decoration: ShapeDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        mainScreen,
+                                        const Color(0xFFFFA031)
+                                      ],
+                                    ),
+                                    // color: const Color(0xFFFFA031),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(100)),
+                                  ),
+                                  child: TextButton(
+                                      onPressed: _showAlertDialog,
+                                      child: const Center(
+                                          child: Text("Delete Account",
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 15,
+                                                  fontFamily: 'Inter',
+                                                  fontWeight: FontWeight.w600,
+                                                  height: 0))))))
+                        ])),
+                    Positioned(
+                        top: -90,
+                        child: Container(
+                          width: 180,
+                          height: 180,
+                          clipBehavior: Clip.antiAlias,
+                          decoration:
+                              const BoxDecoration(shape: BoxShape.circle),
+                          child: Image.network(photoURL!, fit: BoxFit.cover),
+                        ))
+                  ]))),
     );
   }
 
@@ -165,12 +176,12 @@ class _AccPageState extends State<AccPage> {
                 Padding(
                     padding: EdgeInsets.only(top: 10),
                     child: Center(
-                      child: Text('ยืนยันออกจากระบบหรือไม่',
+                      child: Text('ยืนยันการลบบัญชีหรือไม่',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                               color: Color(0xFF7A7A7A),
-                              fontSize: 17,
-                              fontFamily: 'Sarabun',
+                              fontSize: 16,
+                              fontFamily: 'Inter',
                               fontWeight: FontWeight.w400,
                               height: 0.11)),
                     )),
@@ -196,7 +207,7 @@ class _AccPageState extends State<AccPage> {
                                   style: TextStyle(
                                       color: Color(0xFF7A7A7A),
                                       fontSize: 15,
-                                      fontFamily: 'Sarabun',
+                                      fontFamily: 'Inter',
                                       fontWeight: FontWeight.w400,
                                       height: 0.12)),
                               onPressed: () async {
@@ -229,7 +240,7 @@ class _AccPageState extends State<AccPage> {
                                 style: TextStyle(
                                   color: Color(0xFF7A7A7A),
                                   fontSize: 15,
-                                  fontFamily: 'Sarabun',
+                                  fontFamily: 'Inter',
                                   fontWeight: FontWeight.w400,
                                   height: 0.12,
                                 )),

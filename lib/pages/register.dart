@@ -360,11 +360,12 @@ class _RegisterState extends State<Register> {
 
   Future<void> phoneAuth() async {
     try {
-      await FirebaseAuth.instance.verifyPhoneNumber(
+      await _auth.verifyPhoneNumber(
         phoneNumber: "+66821308781",
         // phoneNumber: phoneNumberController.text.trim().toString(),
+        timeout: const Duration(seconds: 60),
         verificationCompleted: (PhoneAuthCredential credential) async {
-          await FirebaseAuth.instance.signInWithCredential(credential);
+          await _auth.signInWithCredential(credential);
         },
         verificationFailed: (FirebaseAuthException ex) {
           throw Exception(ex.message);

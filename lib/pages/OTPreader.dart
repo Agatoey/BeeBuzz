@@ -2,6 +2,7 @@ import 'package:appbeebuzz/constant.dart';
 import 'package:appbeebuzz/pages/allSMS.dart';
 import 'package:appbeebuzz/pages/register.dart';
 import 'package:appbeebuzz/style.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pinput/pinput.dart';
@@ -20,6 +21,8 @@ class OTPreader extends StatefulWidget {
 
 class _OTPreaderState extends State<OTPreader> {
   TextEditingController otpController = TextEditingController();
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   String? otpCode;
 
   @override
@@ -90,9 +93,22 @@ class _OTPreaderState extends State<OTPreader> {
                   PhoneAuthCredential credential = PhoneAuthProvider.credential(
                       verificationId: widget.verificationId,
                       smsCode: otpController.text.toString());
-                  FirebaseAuth.instance
-                      .signInWithCredential(credential)
-                      .then((value) {
+                  _auth.signInWithCredential(credential).then((value) async {
+                    await firestore
+                        .collection('users')
+                        .doc(value.user?.uid)
+                        .set({
+                      'username': "userName",
+                      'uid': value.user?.uid,
+                      'profilePhoto':
+                          "https://cdn-icons-png.freepik.com/512/4945/4945750.png",
+                      'email': "email",
+                      'providers': "password"
+                    });
+                    value.user?.updateDisplayName("userName");
+                    value.user?.verifyBeforeUpdateEmail("arjaree234@gmail.com");
+                    value.user!.updatePhotoURL(
+                        'https://cdn-icons-png.freepik.com/512/4945/4945750.png');
                     Navigator.pushReplacement(context,
                         MaterialPageRoute(builder: (context) => Allsms()));
                   });

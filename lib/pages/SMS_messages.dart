@@ -3,10 +3,13 @@ import 'dart:typed_data';
 import 'package:appbeebuzz/constant.dart';
 import 'package:appbeebuzz/pages/allSMS.dart';
 import 'package:appbeebuzz/style.dart';
+// import 'package:contacts_service/contacts_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+// import 'package:sms_advanced/sms_advanced.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -30,18 +33,64 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future roadSMSTest() async {
+    messagesBySender = {};
+    bySender = {};
     var permission = await Permission.sms.request();
     if (!permission.isGranted) {
       setState(() => _permissionDenied = true);
     } else {
-      final messages =
-          await _query.querySms(kinds: [SmsQueryKind.inbox], count: 100);
+      final messages = await _query.querySms(
+        kinds: [SmsQueryKind.inbox],
+        // address: getContactAddress(),
+      );
       setState(() {
         _messages = messages;
       });
       _fetchData();
+      for (var message in _messages) {
+        if (!messagesBySender.containsKey(message.sender)) {
+          messagesBySender[message.sender.toString()] = [];
+        }
+        messagesBySender[message.sender]?.add(message);
+      }
     }
   }
+
+  // Future<String?> getContactName(String phoneNumber) async {
+  //   final contacts = await ContactsService.getContactsForPhone(phoneNumber);
+  //   if (contacts.isNotEmpty) {
+  //     return contacts.first.displayName;
+  //   }
+  //   return null;
+  // }
+
+  // Future<Uint8List?> getContactPhoto(String phoneNumber) async {
+  //   final contacts = await ContactsService.getContactsForPhone(phoneNumber);
+  //   if (contacts.isNotEmpty) {
+  //     return contacts.first.avatar;
+  //   }
+  //   return null;
+  // }
+
+  Future<Contact?> getInfo(String sender) async {
+    for (final contact in _contacts!) {
+      final contactid = await FlutterContacts.getContact(contact.id);
+      if (contactid!.phones.isNotEmpty) {
+        if (sender == contactid.phones.first.number) {
+          return contactid;
+        }
+      }
+    }
+    return null;
+  }
+
+  // Future _fetchData() async {
+  //   var permission = await FlutterContacts.requestPermission(readonly: true);
+  //   final contacts = await FlutterContacts.getContacts(withPhoto: true);
+  //   if (permission) {
+  //     setState(() => _contacts = contacts);
+  //   }
+  // }
 
   Future _fetchData() async {
     var permission = await FlutterContacts.requestPermission(readonly: true);
@@ -80,43 +129,43 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
-  Future<Contact?> getInfo(String sender) async {
-    for (final contact in _contacts!) {
-      final contactid = await FlutterContacts.getContact(contact.id);
-      if (contactid!.phones.isNotEmpty) {
-        if (sender == contactid.phones.first.number) {
-          return contactid;
-        }
-      }
-    }
-    return null;
-  }
+  // Future<Contact?> getInfo(String sender) async {
+  //   for (final contact in _contacts!) {
+  //     final contactid = await FlutterContacts.getContact(contact.id);
+  //     if (contactid!.phones.isNotEmpty) {
+  //       if (sender == contactid.phones.first.number) {
+  //         return contactid;
+  //       }
+  //     }
+  //   }
+  //   return null;
+  // }
 
-  Future<String?> getName(String sender) async {
-    for (final contact in _contacts!) {
-      final _contact = await FlutterContacts.getContact(contact.id);
-      if (_contact!.phones.isNotEmpty) {
-        if (sender == _contact.phones.first.number) {
-          print(_contact.phones.first.number);
-          return _contact.displayName;
-        }
-      }
-    }
-    return null;
-  }
+  // Future<String?> getName(String sender) async {
+  //   for (final contact in _contacts!) {
+  //     final _contact = await FlutterContacts.getContact(contact.id);
+  //     if (_contact!.phones.isNotEmpty) {
+  //       if (sender == _contact.phones.first.number) {
+  //         print(_contact.phones.first.number);
+  //         return _contact.displayName;
+  //       }
+  //     }
+  //   }
+  //   return null;
+  // }
 
-  Future<Uint8List?> getImage(String sender) async {
-    for (final contact in _contacts!) {
-      final _contact = await FlutterContacts.getContact(contact.id);
-      if (_contact!.phones.isNotEmpty) {
-        if (sender == _contact.phones.first.number &&
-            _contact.photo!.isNotEmpty) {
-          return _contact.photo;
-        }
-      }
-    }
-    return null;
-  }
+  // Future<Uint8List?> getImage(String sender) async {
+  //   for (final contact in _contacts!) {
+  //     final _contact = await FlutterContacts.getContact(contact.id);
+  //     if (_contact!.phones.isNotEmpty) {
+  //       if (sender == _contact.phones.first.number &&
+  //           _contact.photo!.isNotEmpty) {
+  //         return _contact.photo;
+  //       }
+  //     }
+  //   }
+  //   return null;
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -184,7 +233,6 @@ class _MyAppState extends State<MyApp> {
                 title:
                     // Text(sender,
                     //     style: const TextStyle(fontWeight: FontWeight.bold)),
-                
                     FutureBuilder<Contact?>(
                   future: getInfo(sender),
                   builder:
@@ -197,6 +245,18 @@ class _MyAppState extends State<MyApp> {
                         style: const TextStyle(fontWeight: FontWeight.bold));
                   },
                 ),
+                // FutureBuilder<String?>(
+                //   future: getContactName(sender),
+                //   builder:
+                //       (BuildContext context, AsyncSnapshot<String?> snapshot) {
+                //     if (snapshot.hasData) {
+                //       return Text(snapshot.data!,
+                //           style: const TextStyle(fontWeight: FontWeight.bold));
+                //     }
+                //     return Text(sender,
+                //         style: const TextStyle(fontWeight: FontWeight.bold));
+                //   },
+                // ),
                 subtitle: Text('${message.body}',
                     overflow: TextOverflow.ellipsis,
                     softWrap: false,
@@ -214,22 +274,39 @@ class _MyAppState extends State<MyApp> {
                           //   "assets/images/profile.png",
                           //   fit: BoxFit.fitWidth,
                           // ),
+
                           FutureBuilder<Contact?>(
-                        future: getInfo(sender),
-                        builder: (BuildContext context,
-                            AsyncSnapshot<Contact?> snapshot) {
-                          final Uint8List? imageData = snapshot.data?.photo;
-                          if (snapshot.hasData && imageData != null) {
-                            return CircleAvatar(
-                              backgroundImage: MemoryImage(imageData),
-                            );
-                          }
-                          return Image.asset(
-                            "assets/images/profile.png",
-                            fit: BoxFit.fitWidth,
-                          );
-                        },
-                      )
+                  future: getInfo(sender),
+                  builder:
+                      (BuildContext context, AsyncSnapshot<Contact?> snapshot) {
+                    final Uint8List? imageData = snapshot.data?.photo;
+                    if (snapshot.hasData && imageData != null) {
+                      return CircleAvatar(
+                        backgroundImage: MemoryImage(imageData),
+                      );
+                    }
+                    return Image.asset(
+                      "assets/images/profile.png",
+                      fit: BoxFit.fitWidth,
+                    );
+                  },
+                )
+                      //     FutureBuilder<Uint8List?>(
+                      //   future: getContactPhoto(sender),
+                      //   builder: (BuildContext context,
+                      //       AsyncSnapshot<Uint8List?> snapshot) {
+                      //     final Uint8List? imageData = snapshot.data;
+                      //     if (snapshot.hasData && imageData!.isNotEmpty) {
+                      //       return CircleAvatar(
+                      //         backgroundImage: MemoryImage(imageData),
+                      //       );
+                      //     }
+                      //     return Image.asset(
+                      //       "assets/images/profile.png",
+                      //       fit: BoxFit.fitWidth,
+                      //     );
+                      //   },
+                      // )
                       ),
                   Positioned(
                       bottom: 0,

@@ -1,3 +1,4 @@
+import 'package:appbeebuzz/pages/OTPreader.dart';
 import 'package:appbeebuzz/pages/register.dart';
 import 'package:appbeebuzz/widgets/inputFormField.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -30,10 +31,13 @@ class _LoginPageState extends State<LoginPage> {
   TextEditingController passwordController = TextEditingController();
   TextEditingController emailController = TextEditingController();
   TextEditingController phoneNumberController = TextEditingController();
+  TextEditingController otpController = TextEditingController();
 
   late double height;
   late double heighterror;
   late String provider;
+
+  late String _verificationId;
 
   @override
   void initState() {
@@ -251,8 +255,26 @@ class _LoginPageState extends State<LoginPage> {
                     hintText: "Phone Number",
                     filled: true,
                     fillColor: const Color(0xFFF7F7F9),
+                    // suffixIcon: IconButton(
+                    //     onPressed: () {},
+                    //     icon: const Icon(Icons.send, color: Colors.black45)),
                     prefixIcon: const Icon(Icons.phone_android,
                         color: Colors.black45)))),
+        buildButtonSendOTP(),
+        Container(
+            margin: const EdgeInsets.only(top: 10),
+            child: TextFormField(
+                controller: otpController,
+                decoration: InputDecoration(
+                    contentPadding: EdgeInsets.zero,
+                    border: OutlineInputBorder(
+                        borderSide: BorderSide.none,
+                        borderRadius: BorderRadius.circular(8.0)),
+                    hintText: "OTP Code",
+                    filled: true,
+                    fillColor: const Color(0xFFF7F7F9),
+                    prefixIcon: const Icon(Icons.textsms_outlined,
+                        color: Colors.black45))))
       ],
     );
   }
@@ -383,6 +405,58 @@ class _LoginPageState extends State<LoginPage> {
     ]);
   }
 
+  Widget buildButtonSendOTP() {
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      constraints: const BoxConstraints.expand(height: 40),
+      decoration: ShapeDecoration(
+          color: mainScreen,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+      child: TextButton(
+        child: const Center(
+          child: Text(
+            "Send OTP",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFF2E2E2E),
+              fontSize: 15,
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w600,
+              height: 0.17,
+            ),
+          ),
+        ),
+        onPressed: () async {
+          _formKey.currentState?.validate();
+          String phoneNumber = phoneNumberController.text.trim();
+          if (phoneNumber.isNotEmpty) {
+            try {
+              await _auth.verifyPhoneNumber(
+                // phoneNumber: "+66821308781",
+                phoneNumber: phoneNumber.toString(),
+                timeout: const Duration(seconds: 1),
+                verificationCompleted: (PhoneAuthCredential credential) async {
+                  await _auth.signInWithCredential(credential);
+                },
+                verificationFailed: (FirebaseAuthException ex) {
+                  throw Exception(ex.message);
+                },
+                codeAutoRetrievalTimeout: (String verificationId) {setState(() {
+                  _verificationId = verificationId;
+                });},
+                codeSent: (String verificationId, int? resendtoken) {},
+              );
+              errrorText("send OTP : 123456", Colors.green);
+            } on FirebaseAuthException catch (e) {
+              errrorText(e.message.toString(), Colors.red);
+            }
+          }
+        },
+      ),
+    );
+  }
+
   Widget buildButtonLogin() {
     return Container(
       margin: const EdgeInsets.only(top: 10),
@@ -413,23 +487,48 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  signIn() {
+  signIn() async {
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
-    _auth
-        .signInWithEmailAndPassword(email: email, password: password)
-        .then((user) async {
-      print(
-          "signed in ${user.user?.email} && providers : ${user.user?.providerData}");
-    }).catchError((error) {
-      var errrorText = "Login ไม่สำเร็จ";
-      print(errrorText);
-      print(error.message);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(errrorText, style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.red,
-      ));
-      print(error);
-    });
+    String phoneNumber = phoneNumberController.text.trim();
+
+    if (email.isNotEmpty && password.isNotEmpty) {
+      _auth
+          .signInWithEmailAndPassword(email: email, password: password)
+          .then((user) async {
+        print(
+            "signed in ${user.user?.email} && providers : ${user.user?.providerData}");
+      }).catchError((error) {
+        var errrorText = "Login ไม่สำเร็จ";
+        print(errrorText);
+        print(error.message);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(errrorText, style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.red,
+        ));
+        print(error);
+      });
+    }
+    if (phoneNumber.isNotEmpty) {
+      try {
+        final AuthCredential credential = PhoneAuthProvider.credential(
+          verificationId: _verificationId,
+          smsCode: otpController.text,
+        );
+
+        final User? user = (await _auth.signInWithCredential(credential)).user;
+
+        errrorText("Successfully signed in UID: ${user?.displayName}",Colors.green);
+      } catch (e) {
+        errrorText("Failed to sign in: $e",Colors.red);
+      }
+    }
+  }
+
+  errrorText(String errortext, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(errortext, style: const TextStyle(color: Colors.white)),
+      backgroundColor: color,
+    ));
   }
 }
