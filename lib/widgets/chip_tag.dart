@@ -197,14 +197,8 @@ class _ChipTagsState extends State<ChipTags>
               onSubmitted: widget.createTagOnSubmit
                   ? (value) {
                       widget.list.add(value);
-
-                      ///setting the controller to empty
                       widget.inputController.clear();
-
-                      ///resetting form
                       _formKey.currentState!.reset();
-
-                      ///refersing the state to show new data
                       setState(() {});
                       _focusNode.requestFocus();
                     }
@@ -214,24 +208,15 @@ class _ChipTagsState extends State<ChipTags>
                   : (value) {
                       visibleState();
                       if (widget.inputController.text.isNotEmpty) {
-                        ///check if user has send separator so that it can break the line
-                        ///and add that word to list
                         if (value.endsWith(widget.separator ?? " ")) {
-                          ///check for ' ' and duplicate tags
                           if (value != widget.separator &&
                               !widget.list.contains(value.trim())) {
                             widget.list.add(value
                                 .replaceFirst(widget.separator ?? " ", '')
                                 .trim());
                           }
-
-                          ///setting the controller to empty
                           widget.inputController.clear();
-
-                          ///resetting form
                           _formKey.currentState!.reset();
-
-                          ///refersing the state to show new data
                           setState(() {
                             visible = false;
                           });
@@ -339,5 +324,4 @@ class _ChipTagsState extends State<ChipTags>
       ),
     );
   }
-
 }

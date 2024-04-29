@@ -58,6 +58,8 @@ dependencies:
   flutter_chip_tags: ^2.0.2
   google_fonts: ^6.2.1
   arc_progress_bar_new: ^1.0.4
+  dashed_circular_progress_bar: ^0.0.6
+  json_pretty: ^1.0.4
 
 dev_dependencies:
   flutter_test:
@@ -106,6 +108,9 @@ flutter:
     - family: Kanit
       fonts:
         - asset: assets/fonts/Kanit-Regular.ttf
+    - family: Saraban
+      fonts:
+        - asset: assets/fonts/Sarabun-Regular.ttf
     # - family: Trajan Pro
     #   fonts:
     #     - asset: fonts/TrajanPro.ttf

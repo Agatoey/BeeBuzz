@@ -1,6 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
-
-import 'package:appbeebuzz/pages/SMS_messages.dart';
+import 'package:appbeebuzz/models/messages_model.dart';
 import 'package:appbeebuzz/pages/accPage.dart';
 import 'package:appbeebuzz/pages/login.dart';
 import 'package:appbeebuzz/pages/filterPage.dart';
@@ -42,11 +43,24 @@ class _AllsmsState extends State<Allsms> {
   bool isPress1 = true;
   final _selectedSegment = ValueNotifier('all');
 
+  late Timer delay;
+
   @override
   void initState() {
     isPress1 = true;
+
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   Future.delayed(const Duration(microseconds: 500)).then((value){});
+    // });
+
     roadSMSTest();
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    delay.cancel();
+    super.dispose();
   }
 
   Future roadSMSTest() async {
@@ -70,14 +84,59 @@ class _AllsmsState extends State<Allsms> {
         if (!messagesBySender.containsKey(message.sender)) {
           messagesBySender[message.sender.toString()] = [];
         }
-        messagesBySender[message.sender]?.add(message);
+        setState(() {
+          messagesBySender[message.sender]?.add(message);
+        });
         // print("${message.date!.hour}:${message.date!.minute}");
       }
       await Permission.contacts.request();
+      // print(messagesBySender.keys);
+      getJson();
       // messagesBySender.forEach((key, value) {
       //   print(key.toString());
       // });
     }
+  }
+
+  List<MessageModel> messageModels = [];
+  getJson() async {
+    messageModels = [];
+    late var contacts;
+    for (var entry in messagesBySender.entries) {
+      var key = entry.key;
+      var value = entry.value;
+
+      List<Messages> messages = [];
+      contacts = await ContactsService.getContactsForPhone(key);
+      if (contacts.isNotEmpty) {
+        for (var msg in value) {
+          messages.add(Messages(
+            body: msg.body,
+            date: DateTime.parse(msg.date.toString()),
+            time: "${msg.date!.hour}:${msg.date!.minute}",
+          ));
+        }
+
+        messageModels.add(
+            MessageModel(name: contacts.first.displayName, messages: messages));
+      }
+      if (contacts.isEmpty) {
+        for (var msg in value) {
+          // print(msg.date);
+          messages.add(Messages(
+            body: msg.body,
+            date: DateTime.parse(msg.date.toString()),
+            time: "${msg.date!.hour}:${msg.date!.minute}",
+          ));
+        }
+        messageModels.add(MessageModel(name: key, messages: messages));
+      }
+    }
+    // Print the result
+    JsonEncoder encoder = const JsonEncoder.withIndent('  ');
+    String prettyprint = encoder.convert(messageModels);
+    debugPrint(prettyprint);
+    delay = Timer(const Duration(milliseconds: 250), () {});
   }
 
   Future<String?> getContactName(String phoneNumber) async {
@@ -124,55 +183,136 @@ class _AllsmsState extends State<Allsms> {
           drawer: navBar(),
           body: SingleChildScrollView(
               child: RefreshIndicator(
-            onRefresh: roadSMSTest,
-            child: Container(
-              margin: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Container(
-                    constraints: const BoxConstraints.expand(height: 50),
-                    decoration: ShapeDecoration(
-                        color: const Color(0xFFF7F7F9),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(5))),
-                    child: AdvancedSegment(
-                      controller: _selectedSegment,
-                      segments: const {
-                        'all': 'All SMS',
-                        'fraud': 'Fraud SMS',
-                      },
-                      backgroundColor: const Color(0xFFF7F7F9),
-                      activeStyle: const TextStyle(
-                          color: Colors.black, fontWeight: FontWeight.w600),
-                      inactiveStyle: const TextStyle(color: Color(0xFFB2B7BE)),
-                      sliderColor: Colors.white,
+                  onRefresh: roadSMSTest,
+                  child: Container(
+                    margin: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        Container(
+                          constraints: const BoxConstraints.expand(height: 50),
+                          decoration: ShapeDecoration(
+                              color: const Color(0xFFF7F7F9),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(5))),
+                          child: AdvancedSegment(
+                            controller: _selectedSegment,
+                            segments: const {
+                              'all': 'All SMS',
+                              'fraud': 'Fraud SMS',
+                            },
+                            backgroundColor: const Color(0xFFF7F7F9),
+                            activeStyle: const TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.w600),
+                            inactiveStyle:
+                                const TextStyle(color: Color(0xFFB2B7BE)),
+                            sliderColor: Colors.white,
+                          ),
+                        ),
+                        Container(
+                          height: 600,
+                          margin: const EdgeInsets.only(top: 20, bottom: 20),
+                          decoration: ShapeDecoration(
+                              color: Colors.white.withOpacity(0.7),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(21))),
+                          child: ValueListenableBuilder<String>(
+                            valueListenable: _selectedSegment,
+                            builder: (_, key, __) {
+                              switch (key) {
+                                case 'all':
+                                  return testAllSMS(_messages);
+                                case 'fraud':
+                                  return fraudSMS(context);
+                                default:
+                                  return const SizedBox();
+                              }
+                            },
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  Container(
-                    height: 600,
-                    margin: const EdgeInsets.only(top: 20, bottom: 20),
-                    decoration: ShapeDecoration(
-                        color: Colors.white.withOpacity(0.7),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(21))),
-                    child: ValueListenableBuilder<String>(
-                      valueListenable: _selectedSegment,
-                      builder: (_, key, __) {
-                        switch (key) {
-                          case 'all':
-                            return messagesListView(_messages);
-                          case 'fraud':
-                            return fraudSMS(context);
-                          default:
-                            return const SizedBox();
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
+                  )))),
+    );
+  }
+
+  Widget testAllSMS(List<SmsMessage> messages) {
+    if (_messages.isEmpty) {
+      return Scaffold(
+          backgroundColor: bgYellow,
+          body: const Center(child: CircularProgressIndicator()));
+    }
+    return FutureBuilder(
+      future: getJson(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            alignment: Alignment.center,
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation(mainScreen),
             ),
-          ))),
+          );
+        }
+        return ListView.builder(
+          shrinkWrap: true,
+          itemCount: messageModels.length,
+          itemBuilder: (context, index) {
+            String sender = messagesBySender.keys.toList()[index];
+            List? messages = messagesBySender[sender];
+            SmsMessage message = messages![0];
+            return ListTile(
+              // tileColor: message.isRead == false ? const Color(0xFFCDE9FF) : null,
+              title: Text(messageModels[index].name,
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text(messageModels[index].messages[0].body,
+                  style: const TextStyle(fontFamily: "Kanit"),
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                  maxLines: 1),
+              leading: Stack(children: [
+                Container(
+                    height: 50,
+                    width: 50,
+                    decoration: ShapeDecoration(
+                        color: const Color(0xFFCB9696),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(100))),
+                    child: Image.asset(
+                      "assets/images/profile.png",
+                      fit: BoxFit.fitWidth,
+                    )),
+                Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                        width: 20,
+                        height: 20,
+                        decoration: ShapeDecoration(
+                            color: const Color(0xFFFF2F00),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(100))),
+                        child: const Center(
+                            child: Icon(
+                                color: Colors.white,
+                                Icons.priority_high,
+                                size: 18))))
+              ]),
+              onTap: () {
+                print(messages);
+                Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => ShowMsg(
+                              messages: messages,
+                              name: sender,
+                              // state: data['state'],
+                              // time: data['time'],
+                            )));
+              },
+            );
+          },
+        );
+      },
     );
   }
 
@@ -191,11 +331,7 @@ class _AllsmsState extends State<Allsms> {
         SmsMessage message = messages![0];
         return ListTile(
           // tileColor: message.isRead == false ? const Color(0xFFCDE9FF) : null,
-          title:
-              // Text(sender,
-              //     style: const TextStyle(
-              //         fontWeight: FontWeight.bold, fontFamily: "Kanit")),
-              FutureBuilder<String?>(
+          title: FutureBuilder<String?>(
             future: getContactName(sender),
             builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
               if (snapshot.hasData) {

@@ -52,12 +52,11 @@ class _ShowMsgState extends State<ShowMsg> {
         title: Text(widget.name, style: textHead),
         backgroundColor: mainScreen,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pushReplacement(context,
-                MaterialPageRoute(builder: (context) => const Allsms()));
-          },
-        ),
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () {
+              Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (context) => const Allsms()));
+            }),
       ),
       body: Container(
         child: message(context),
