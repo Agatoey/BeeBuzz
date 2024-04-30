@@ -1,18 +1,18 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:typed_data';
 import 'package:appbeebuzz/models/messages_model.dart';
 import 'package:appbeebuzz/pages/accPage.dart';
 import 'package:appbeebuzz/pages/login.dart';
 import 'package:appbeebuzz/pages/filterPage.dart';
 import 'package:appbeebuzz/pages/showmsg.dart';
 import 'package:appbeebuzz/pages/testContact1.dart';
+import 'package:appbeebuzz/service/getAPI.dart';
 import 'package:appbeebuzz/style.dart';
 import 'package:appbeebuzz/utils/auth_methods.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:appbeebuzz/constant.dart';
 import 'package:contacts_service/contacts_service.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:unicons/unicons.dart';
@@ -29,13 +29,13 @@ class Allsms extends StatefulWidget {
 
 class _AllsmsState extends State<Allsms> {
   final GlobalKey<ScaffoldState> _scaffoldkey = GlobalKey();
-  List<Map> staticData = MyData.data;
   late String signoutWith;
 
   final SmsQuery _query = SmsQuery();
 
   Map<String, List> messagesBySender = {};
   List<SmsMessage> _messages = [];
+  List<MessageModel> messageModels = [];
   bool _permissionDenied = false;
 
   List filterText = ["free", "click"];
@@ -43,24 +43,25 @@ class _AllsmsState extends State<Allsms> {
   bool isPress1 = true;
   final _selectedSegment = ValueNotifier('all');
 
-  late Timer delay;
+  // late Data data;
+
+  // late Timer delay;
 
   @override
   void initState() {
     isPress1 = true;
-
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   Future.delayed(const Duration(microseconds: 500)).then((value){});
-    // });
-
     roadSMSTest();
+    getJson();
     super.initState();
   }
 
   @override
   void dispose() {
-    delay.cancel();
     super.dispose();
+  }
+
+  getURL(){
+    Data().xSendUrlScan("https://twitter.com/linlinSsakura/status/1784897696744047063");
   }
 
   Future roadSMSTest() async {
@@ -90,70 +91,80 @@ class _AllsmsState extends State<Allsms> {
         // print("${message.date!.hour}:${message.date!.minute}");
       }
       await Permission.contacts.request();
+      getURL();
       // print(messagesBySender.keys);
-      getJson();
       // messagesBySender.forEach((key, value) {
       //   print(key.toString());
       // });
     }
   }
 
-  List<MessageModel> messageModels = [];
   getJson() async {
     messageModels = [];
     late var contacts;
     for (var entry in messagesBySender.entries) {
       var key = entry.key;
       var value = entry.value;
+      // var score;
+      // score = 10;
 
       List<Messages> messages = [];
       contacts = await ContactsService.getContactsForPhone(key);
       if (contacts.isNotEmpty) {
         for (var msg in value) {
           messages.add(Messages(
-            body: msg.body,
-            date: DateTime.parse(msg.date.toString()),
-            time: "${msg.date!.hour}:${msg.date!.minute}",
-          ));
+              body: msg.body,
+              date: DateTime.parse(msg.date.toString()),
+              time: "${msg.date!.hour}:${msg.date!.minute}",
+              score: 0,
+              state: 0,
+              linkState: false,
+              link: ""));
         }
 
-        messageModels.add(
-            MessageModel(name: contacts.first.displayName, messages: messages));
+        messageModels.add(MessageModel(
+            name: contacts.first.displayName,
+            photo: contacts.first.avatar,
+            messages: messages));
       }
       if (contacts.isEmpty) {
         for (var msg in value) {
           // print(msg.date);
           messages.add(Messages(
-            body: msg.body,
-            date: DateTime.parse(msg.date.toString()),
-            time: "${msg.date!.hour}:${msg.date!.minute}",
-          ));
+              body: msg.body,
+              date: DateTime.parse(msg.date.toString()),
+              time: "${msg.date!.hour}:${msg.date!.minute}",
+              score: 60,
+              state: 1,
+              linkState: true,
+              link: ""));
         }
-        messageModels.add(MessageModel(name: key, messages: messages));
+        messageModels
+            .add(MessageModel(name: key, photo: [], messages: messages));
       }
     }
     // Print the result
-    JsonEncoder encoder = const JsonEncoder.withIndent('  ');
-    String prettyprint = encoder.convert(messageModels);
-    debugPrint(prettyprint);
-    delay = Timer(const Duration(milliseconds: 250), () {});
+    // JsonEncoder encoder = const JsonEncoder.withIndent('  ');
+    // String prettyprint = encoder.convert(messageModels);
+    // debugPrint(prettyprint);
+    // print(jsonEncode(messageModels));
   }
 
-  Future<String?> getContactName(String phoneNumber) async {
-    final contacts = await ContactsService.getContactsForPhone(phoneNumber);
-    if (contacts.isNotEmpty) {
-      return contacts.first.displayName;
-    }
-    return null;
-  }
+  // Future<String?> getContactName(String phoneNumber) async {
+  //   final contacts = await ContactsService.getContactsForPhone(phoneNumber);
+  //   if (contacts.isNotEmpty) {
+  //     return contacts.first.displayName;
+  //   }
+  //   return null;
+  // }
 
-  Future<Uint8List?> getContactPhoto(String phoneNumber) async {
-    final contacts = await ContactsService.getContactsForPhone(phoneNumber);
-    if (contacts.isNotEmpty) {
-      return contacts.first.avatar;
-    }
-    return null;
-  }
+  // Future<Uint8List?> getContactPhoto(String phoneNumber) async {
+  //   final contacts = await ContactsService.getContactsForPhone(phoneNumber);
+  //   if (contacts.isNotEmpty) {
+  //     return contacts.first.avatar;
+  //   }
+  //   return null;
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -181,62 +192,72 @@ class _AllsmsState extends State<Allsms> {
           backgroundColor: bgYellow,
           key: _scaffoldkey,
           drawer: navBar(),
-          body: SingleChildScrollView(
-              child: RefreshIndicator(
-                  onRefresh: roadSMSTest,
-                  child: Container(
-                    margin: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        Container(
-                          constraints: const BoxConstraints.expand(height: 50),
-                          decoration: ShapeDecoration(
-                              color: const Color(0xFFF7F7F9),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(5))),
-                          child: AdvancedSegment(
-                            controller: _selectedSegment,
-                            segments: const {
-                              'all': 'All SMS',
-                              'fraud': 'Fraud SMS',
-                            },
-                            backgroundColor: const Color(0xFFF7F7F9),
-                            activeStyle: const TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.w600),
-                            inactiveStyle:
-                                const TextStyle(color: Color(0xFFB2B7BE)),
-                            sliderColor: Colors.white,
-                          ),
-                        ),
-                        Container(
-                          height: 600,
-                          margin: const EdgeInsets.only(top: 20, bottom: 20),
-                          decoration: ShapeDecoration(
-                              color: Colors.white.withOpacity(0.7),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(21))),
-                          child: ValueListenableBuilder<String>(
-                            valueListenable: _selectedSegment,
-                            builder: (_, key, __) {
-                              switch (key) {
-                                case 'all':
-                                  return testAllSMS(_messages);
-                                case 'fraud':
-                                  return fraudSMS(context);
-                                default:
-                                  return const SizedBox();
-                              }
-                            },
-                          ),
-                        ),
-                      ],
+          body: Container(
+            margin: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Container(
+                  constraints: const BoxConstraints.expand(height: 50),
+                  decoration: ShapeDecoration(
+                      color: const Color(0xFFF7F7F9),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(5))),
+                  child: AdvancedSegment(
+                    controller: _selectedSegment,
+                    segments: const {
+                      'all': 'All SMS',
+                      'fraud': 'Fraud SMS',
+                    },
+                    backgroundColor: const Color(0xFFF7F7F9),
+                    activeStyle: const TextStyle(
+                        color: Colors.black, fontWeight: FontWeight.w600),
+                    inactiveStyle: const TextStyle(color: Color(0xFFB2B7BE)),
+                    sliderColor: Colors.white,
+                  ),
+                ),
+                SingleChildScrollView(
+                  child: RefreshIndicator(
+                    onRefresh: roadSMSTest,
+                    child: Container(
+                      height: 550,
+                      // constraints: BoxConstraints(
+                      //   minHeight: 550,
+                      //   // minHeight: MediaQuery.of(context).size.height / 2,
+                      // ),
+                      // padding: EdgeInsets.only(bottom: 20),
+                      margin: const EdgeInsets.only(top: 20, bottom: 20),
+                      decoration: ShapeDecoration(
+                          color: Colors.white.withOpacity(0.7),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(21))),
+                      child: ValueListenableBuilder<String>(
+                        valueListenable: _selectedSegment,
+                        builder: (_, key, __) {
+                          switch (key) {
+                            case 'all':
+                              return allSMS(_messages);
+                            case 'fraud':
+                              return fraudSMS(_messages);
+                            default:
+                              return const SizedBox();
+                          }
+                        },
+                      ),
                     ),
-                  )))),
+                  ),
+                ),
+              ],
+            ),
+          )),
     );
   }
 
-  Widget testAllSMS(List<SmsMessage> messages) {
+  Uint8List stringToUint8List(String text) {
+    print(Uint8List.fromList(text.codeUnits));
+    return Uint8List.fromList(text.codeUnits);
+  }
+
+  Widget allSMS(List<SmsMessage> messages) {
     if (_messages.isEmpty) {
       return Scaffold(
           backgroundColor: bgYellow,
@@ -257,9 +278,7 @@ class _AllsmsState extends State<Allsms> {
           shrinkWrap: true,
           itemCount: messageModels.length,
           itemBuilder: (context, index) {
-            String sender = messagesBySender.keys.toList()[index];
-            List? messages = messagesBySender[sender];
-            SmsMessage message = messages![0];
+            var count = messageModels[index].messages.length - 1;
             return ListTile(
               // tileColor: message.isRead == false ? const Color(0xFFCDE9FF) : null,
               title: Text(messageModels[index].name,
@@ -277,177 +296,30 @@ class _AllsmsState extends State<Allsms> {
                         color: const Color(0xFFCB9696),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(100))),
-                    child: Image.asset(
-                      "assets/images/profile.png",
-                      fit: BoxFit.fitWidth,
-                    )),
+                    child: messageModels[index].photo.isNotEmpty
+                        ? ClipOval(
+                            child: Image.memory(
+                              Uint8List.fromList(messageModels[index].photo),
+                              fit: BoxFit.contain,
+                            ),
+                          )
+                        : Image.asset(
+                            "assets/images/profile.png",
+                            fit: BoxFit.fitWidth,
+                          )),
                 Positioned(
                     bottom: 0,
                     right: 0,
-                    child: Container(
-                        width: 20,
-                        height: 20,
-                        decoration: ShapeDecoration(
-                            color: const Color(0xFFFF2F00),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(100))),
-                        child: const Center(
-                            child: Icon(
-                                color: Colors.white,
-                                Icons.priority_high,
-                                size: 18))))
-              ]),
-              onTap: () {
-                print(messages);
-                Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => ShowMsg(
-                              messages: messages,
-                              name: sender,
-                              // state: data['state'],
-                              // time: data['time'],
-                            )));
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget messagesListView(List<SmsMessage> messages) {
-    if (_messages.isEmpty) {
-      return Scaffold(
-          backgroundColor: bgYellow,
-          body: const Center(child: CircularProgressIndicator()));
-    }
-    return ListView.builder(
-      shrinkWrap: true,
-      itemCount: messagesBySender.length,
-      itemBuilder: (context, index) {
-        String sender = messagesBySender.keys.toList()[index];
-        List? messages = messagesBySender[sender];
-        SmsMessage message = messages![0];
-        return ListTile(
-          // tileColor: message.isRead == false ? const Color(0xFFCDE9FF) : null,
-          title: FutureBuilder<String?>(
-            future: getContactName(sender),
-            builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
-              if (snapshot.hasData) {
-                return Text(snapshot.data!,
-                    style: const TextStyle(fontWeight: FontWeight.bold));
-              }
-              return Text(sender,
-                  style: const TextStyle(fontWeight: FontWeight.bold));
-            },
-          ),
-          subtitle: Text('${message.body}',
-              style: const TextStyle(fontFamily: "Kanit"),
-              overflow: TextOverflow.ellipsis,
-              softWrap: false,
-              maxLines: 1),
-          leading: Stack(children: [
-            Container(
-                height: 50,
-                width: 50,
-                decoration: ShapeDecoration(
-                    color: const Color(0xFFCB9696),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(100))),
-                child: FutureBuilder<Uint8List?>(
-                  future: getContactPhoto(sender),
-                  builder: (BuildContext context,
-                      AsyncSnapshot<Uint8List?> snapshot) {
-                    final Uint8List? imageData = snapshot.data;
-                    if (snapshot.hasData && imageData!.isNotEmpty) {
-                      return CircleAvatar(
-                        backgroundImage: MemoryImage(imageData),
-                      );
-                    }
-                    return Image.asset(
-                      "assets/images/profile.png",
-                      fit: BoxFit.fitWidth,
-                    );
-                  },
-                )),
-            Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                    width: 20,
-                    height: 20,
-                    decoration: ShapeDecoration(
-                        color: const Color(0xFFFF2F00),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(100))),
-                    child: const Center(
-                        child: Icon(
-                            color: Colors.white,
-                            Icons.priority_high,
-                            size: 18))))
-          ]),
-          onTap: () {
-            print(messages);
-            Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => ShowMsg(
-                          messages: messages,
-                          name: sender,
-                          // state: data['state'],
-                          // time: data['time'],
-                        )));
-          },
-        );
-      },
-    );
-  }
-
-  Widget allSMS(BuildContext context) {
-    List<Map> staticData = MyData.data;
-    return ListView.builder(
-        itemBuilder: (builder, index) {
-          Map data = staticData[index];
-          return ListTile(
-              onTap: () {
-                // Navigator.pushReplacement(
-                //     context,
-                //     MaterialPageRoute(
-                //         builder: (context) => ShowMsg(
-                //               message: data['message'],
-                //               phoneNumber: data['phone'],
-                //               name: data['name'],
-                //               state: data['state'],
-                //               // time: data['time'],
-                //             )));
-              },
-              title: Text("${data['name']}", overflow: TextOverflow.ellipsis),
-              subtitle: Text("${data['message'][0]}",
-                  overflow: TextOverflow.ellipsis),
-              leading: Stack(children: [
-                Container(
-                  height: 50,
-                  width: 50,
-                  decoration: ShapeDecoration(
-                      color: const Color(0xFFCB9696),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(100))),
-                  child: Image.asset(
-                    data['image'],
-                    fit: BoxFit.fitWidth,
-                  ),
-                ),
-                Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: data['state'][0] == 0
+                    child: messageModels[index].messages[0].state == 0
                         ? Container()
                         : Container(
                             width: 20,
                             height: 20,
                             decoration: ShapeDecoration(
-                                color: data['state'][0] == 1
+                                color: messageModels[index]
+                                            .messages[count]
+                                            .state ==
+                                        1
                                     ? const Color(0xFFFCE205)
                                     : const Color(0xFFFF2F00),
                                 shape: RoundedRectangleBorder(
@@ -457,70 +329,114 @@ class _AllsmsState extends State<Allsms> {
                                     color: Colors.white,
                                     Icons.priority_high,
                                     size: 18))))
-              ]));
-        },
-        itemCount: staticData.length);
+              ]),
+              onTap: () {
+                Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => ShowMsg(
+                              messages: messageModels[index].messages,
+                              name: messageModels[index].name,
+                            )));
+              },
+            );
+          },
+        );
+      },
+    );
   }
 
-  Widget fraudSMS(BuildContext context) {
-    List<Map> staticData = MyData.data;
-    return ListView.builder(
-      itemBuilder: (builder, index) {
-        Map data = staticData[index];
-        if (data['state'][0] != 0) {
-          return ListTile(
-            onTap: () {
-              // Navigator.pushReplacement(
-              //     context,
-              //     MaterialPageRoute(
-              //         builder: (context) => ShowMsg(
-              //               message: data['message'],
-              //               phoneNumber: data['phone'],
-              //               name: data['name'],
-              //               state: data['state'],
-              //               // time: data['time'],
-              //             )));
-            },
-            title: Text("${data['name']}"),
-            subtitle:
-                Text("${data['message'][0]}", overflow: TextOverflow.ellipsis),
-            leading: Stack(
-              children: [
-                Container(
-                  height: 50,
-                  width: 50,
-                  decoration: ShapeDecoration(
-                      color: const Color(0xFFCB9696),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(100))),
-                  child: Image.asset(data['image'], fit: BoxFit.fitWidth),
-                ),
-                Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      width: 20,
-                      height: 20,
-                      decoration: ShapeDecoration(
-                          color: data['state'][0] == 1
-                              ? const Color(0xFFFCE205)
-                              : const Color(0xFFFF2F00),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(100))),
-                      child: const Center(
-                          child: Icon(
-                              color: Colors.white,
-                              Icons.priority_high,
-                              size: 18)),
-                    ))
-              ],
+  Widget fraudSMS(List<SmsMessage> messages) {
+    if (_messages.isEmpty) {
+      return Scaffold(
+          backgroundColor: bgYellow,
+          body: const Center(child: CircularProgressIndicator()));
+    }
+    return FutureBuilder(
+      future: getJson(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            alignment: Alignment.center,
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation(mainScreen),
             ),
           );
-        } else {
-          return Container();
         }
+        return ListView.builder(
+          shrinkWrap: true,
+          itemCount: messageModels.length,
+          itemBuilder: (context, index) {
+            var count = messageModels[index].messages.length - 1;
+            if (messageModels[index].messages[count].state != 0) {
+              return ListTile(
+                // tileColor: message.isRead == false ? const Color(0xFFCDE9FF) : null,
+                title: Text(messageModels[index].name,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(messageModels[index].messages[0].body,
+                    style: const TextStyle(fontFamily: "Kanit"),
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                    maxLines: 1),
+                leading: Stack(children: [
+                  Container(
+                      height: 50,
+                      width: 50,
+                      decoration: ShapeDecoration(
+                          color: const Color(0xFFCB9696),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(100))),
+                      child: messageModels[index].photo.isNotEmpty
+                          ? ClipOval(
+                              child: Image.memory(
+                                Uint8List.fromList(messageModels[index].photo),
+                                fit: BoxFit.contain,
+                              ),
+                            )
+                          : Image.asset(
+                              "assets/images/profile.png",
+                              fit: BoxFit.fitWidth,
+                            )),
+                  Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: messageModels[index].messages[0].state == 0
+                          ? Container()
+                          : Container(
+                              width: 20,
+                              height: 20,
+                              decoration: ShapeDecoration(
+                                  color: messageModels[index]
+                                              .messages[count]
+                                              .state ==
+                                          1
+                                      ? const Color(0xFFFCE205)
+                                      : const Color(0xFFFF2F00),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(100))),
+                              child: const Center(
+                                  child: Icon(
+                                      color: Colors.white,
+                                      Icons.priority_high,
+                                      size: 18))))
+                ]),
+                onTap: () {
+                  Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => ShowMsg(
+                                messages: messageModels[index].messages,
+                                name: messageModels[index].name,
+                              )));
+                },
+              );
+            } else {
+              return Container();
+            }
+          },
+        );
       },
-      itemCount: staticData.length,
     );
   }
 
@@ -547,14 +463,6 @@ class _AllsmsState extends State<Allsms> {
                 Navigator.pushReplacement(context,
                     MaterialPageRoute(builder: (context) => const Allsms()));
               }),
-          // ListTile(
-          //     leading:
-          //         FaIcon(FontAwesomeIcons.envelope, size: 20, color: grayBar),
-          //     title: Text('Test Message', style: textBar),
-          //     onTap: () {
-          //       Navigator.pushReplacement(
-          //           context, MaterialPageRoute(builder: (context) => MyApp()));
-          //     }),
           ListTile(
               leading:
                   FaIcon(FontAwesomeIcons.envelope, size: 20, color: grayBar),
@@ -630,92 +538,4 @@ class _AllsmsState extends State<Allsms> {
       ),
     );
   }
-}
-
-class MyData {
-  static List<Map> data = [
-    {
-      "id": 1,
-      "name": "พ่อ",
-      "phone": "0999999999",
-      "image": "assets/images/profile.png",
-      "time": [],
-      "message": ["Hii", "Hello"],
-      "state": [0, 0]
-    },
-    {
-      "id": 2,
-      "name": "แม่",
-      "phone": "0999999999",
-      "image": "assets/images/profile.png",
-      "time": [],
-      "message": ["I Love U"],
-      "state": [0]
-    },
-    {
-      "id": 3,
-      "name": "0999999999",
-      "phone": "0999999999",
-      "image": "assets/images/profile.png",
-      "time": [],
-      "message": [
-        "ยืมเงินหน่อยคับ ยืมเงินหน่อยคับ ยืมเงินหน่อยคับ ยืมเงินหน่อยคับ ยืมเงินหน่อยคับ ยืมเงินหน่อยคับ ยืมเงินหน่อยคับ ยืมเงินหน่อยคับ"
-      ],
-      "state": [1]
-    },
-    {
-      "id": 4,
-      "name": "0888888888",
-      "phone": "0888888888",
-      "image": "assets/images/profile.png",
-      "time": [],
-      "message": ["สวัสดีฮะ", "สวัสดีฮะ"],
-      "state": [1, 2]
-    },
-    {
-      "id": 5,
-      "name": "แฟน",
-      "phone": "0999999999",
-      "image": "assets/images/profile.png",
-      "time": [],
-      "message": ["สบายดีรึเปล่า"],
-      "state": [0]
-    },
-    {
-      "id": 6,
-      "name": "แฟน",
-      "phone": "0999999999",
-      "image": "assets/images/profile.png",
-      "time": [],
-      "message": ["สบายดีรึเปล่า"],
-      "state": [0]
-    },
-    {
-      "id": 7,
-      "name": "แฟน",
-      "phone": "0999999999",
-      "image": "assets/images/profile.png",
-      "time": [],
-      "message": ["สบายดีรึเปล่า"],
-      "state": [0]
-    },
-    {
-      "id": 8,
-      "name": "0999999998",
-      "phone": "0999999998",
-      "image": "assets/images/profile.png",
-      "time": [],
-      "message": ["สบายดีรึเปล่า"],
-      "state": [2]
-    },
-    {
-      "id": 9,
-      "name": "0999999998",
-      "phone": "0999999998",
-      "image": "assets/images/profile.png",
-      "time": [],
-      "message": ["สบายดีรึเปล่า"],
-      "state": [2]
-    }
-  ];
 }
