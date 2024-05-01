@@ -14,15 +14,14 @@ class MessageModel {
 }
 
 class Messages {
-  Messages({
-    required this.body,
-    required this.date,
-    required this.time,
-    required this.score,
-    required this.state,
-    required this.link,
-    required this.linkState
-  });
+  Messages(
+      {required this.body,
+      required this.date,
+      required this.time,
+      required this.score,
+      required this.state,
+      required this.link,
+      required this.linkState});
 
   String body;
   DateTime date;
@@ -30,7 +29,7 @@ class Messages {
   int score;
   int state;
   String link;
-  bool linkState;
+  String linkState;
 
   Map<String, dynamic> toJson() => {
         'body': body,
@@ -39,8 +38,7 @@ class Messages {
         'score': score,
         'state': state,
         'link': link,
-        'linkState' : linkState,
-
+        'linkState': linkState
       };
 }
 

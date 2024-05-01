@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:appbeebuzz/models/messages_model.dart';
+import 'package:appbeebuzz/models/virus.dart';
 import 'package:appbeebuzz/pages/accPage.dart';
 import 'package:appbeebuzz/pages/login.dart';
 import 'package:appbeebuzz/pages/filterPage.dart';
@@ -36,6 +38,8 @@ class _AllsmsState extends State<Allsms> {
   Map<String, List> messagesBySender = {};
   List<SmsMessage> _messages = [];
   List<MessageModel> messageModels = [];
+  Body? res;
+
   bool _permissionDenied = false;
 
   List filterText = ["free", "click"];
@@ -60,8 +64,11 @@ class _AllsmsState extends State<Allsms> {
     super.dispose();
   }
 
-  getURL(){
-    Data().xSendUrlScan("https://twitter.com/linlinSsakura/status/1784897696744047063");
+  getURL() async {
+    // String categories;
+    res = await Data().xSendUrlScan("http://bit.ly/3Dac9eS");
+    // var data = json.decode(res);
+    print(res!.date);
   }
 
   Future roadSMSTest() async {
@@ -88,10 +95,9 @@ class _AllsmsState extends State<Allsms> {
         setState(() {
           messagesBySender[message.sender]?.add(message);
         });
-        // print("${message.date!.hour}:${message.date!.minute}");
       }
-      await Permission.contacts.request();
       getURL();
+
       // print(messagesBySender.keys);
       // messagesBySender.forEach((key, value) {
       //   print(key.toString());
@@ -105,66 +111,98 @@ class _AllsmsState extends State<Allsms> {
     for (var entry in messagesBySender.entries) {
       var key = entry.key;
       var value = entry.value;
+      late String match;
+      var matches;
+      RegExp regExp = RegExp(
+          r'\b(?:https?://[a-zA-Z0-9\:/.?=&#%]+|[a-zA-Z0-9\:/.?=&#%]+\.[a-zA-Z0-9\:/.?=&#%]+)\b');
       // var score;
       // score = 10;
 
+      Map<String, List<MessageModel>> messageModelsByContact = {};
       List<Messages> messages = [];
+      await Permission.contacts.request();
       contacts = await ContactsService.getContactsForPhone(key);
       if (contacts.isNotEmpty) {
         for (var msg in value) {
-          messages.add(Messages(
-              body: msg.body,
-              date: DateTime.parse(msg.date.toString()),
-              time: "${msg.date!.hour}:${msg.date!.minute}",
-              score: 0,
-              state: 0,
-              linkState: false,
-              link: ""));
+          match = "";
+          matches = regExp.allMatches(msg.body);
+          for (final m in matches) {
+            match = m[0]!;
+          }
+
+          var name = messageModels.indexWhere(
+              (model) => model.name.startsWith(contacts.first.displayName));
+          if (name != -1) {
+            messageModels[name].messages.add(Messages(
+                body: msg.body,
+                date: DateTime.parse(msg.date.toString()),
+                time: "${msg.date!.hour}:${msg.date!.minute}",
+                score: 0,
+                state: 0,
+                link: match,
+                linkState: ""));
+          } else {
+            messageModels.add(MessageModel(
+                name: contacts.first.displayName,
+                photo: contacts.first.avatar,
+                messages: [
+                  Messages(
+                      body: msg.body,
+                      date: DateTime.parse(msg.date.toString()),
+                      time: "${msg.date!.hour}:${msg.date!.minute}",
+                      score: 0,
+                      state: 0,
+                      link: match,
+                      linkState: "")
+                ]));
+          }
+
+          // messages.add(Messages(
+          //     body: msg.body,
+          //     date: DateTime.parse(msg.date.toString()),
+          //     time: "${msg.date!.hour}:${msg.date!.minute}",
+          //     score: 0,
+          //     state: 0,
+          //     linkState: false,
+          //     link: match));
         }
 
-        messageModels.add(MessageModel(
-            name: contacts.first.displayName,
-            photo: contacts.first.avatar,
-            messages: messages));
+        // messageModels.add(MessageModel(
+        //     name: contacts.first.displayName,
+        //     photo: contacts.first.avatar,
+        //     messages: messages));
+
+        // print(key);
       }
       if (contacts.isEmpty) {
         for (var msg in value) {
-          // print(msg.date);
+          match = "";
+
+          matches = regExp.allMatches(msg.body);
+          for (final m in matches) {
+            match = m[0]!;
+          }
+
           messages.add(Messages(
               body: msg.body,
               date: DateTime.parse(msg.date.toString()),
               time: "${msg.date!.hour}:${msg.date!.minute}",
               score: 60,
               state: 1,
-              linkState: true,
-              link: ""));
+              link: match,
+              linkState: ""));
         }
         messageModels
             .add(MessageModel(name: key, photo: [], messages: messages));
+        // print(key);
       }
     }
     // Print the result
     // JsonEncoder encoder = const JsonEncoder.withIndent('  ');
     // String prettyprint = encoder.convert(messageModels);
     // debugPrint(prettyprint);
-    // print(jsonEncode(messageModels));
+    // print(jsonEncode(messageModels.length));
   }
-
-  // Future<String?> getContactName(String phoneNumber) async {
-  //   final contacts = await ContactsService.getContactsForPhone(phoneNumber);
-  //   if (contacts.isNotEmpty) {
-  //     return contacts.first.displayName;
-  //   }
-  //   return null;
-  // }
-
-  // Future<Uint8List?> getContactPhoto(String phoneNumber) async {
-  //   final contacts = await ContactsService.getContactsForPhone(phoneNumber);
-  //   if (contacts.isNotEmpty) {
-  //     return contacts.first.avatar;
-  //   }
-  //   return null;
-  // }
 
   @override
   Widget build(BuildContext context) {

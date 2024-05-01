@@ -257,7 +257,7 @@ class _ShowstaticState extends State<Showstatic> {
                                 )),
                           ),
                           Visibility(
-                              visible: widget.info.linkState == true,
+                              visible: widget.info.link.isNotEmpty,
                               child: _linkInfo()),
                         ],
                       ),
