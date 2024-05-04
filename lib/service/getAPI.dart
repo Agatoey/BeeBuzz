@@ -1,4 +1,5 @@
 import 'package:appbeebuzz/models/virus.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -30,24 +31,32 @@ class Data {
         );
 
         if (responseTwo.statusCode == 200) {
-          // var meta = json.decode(responseTwo.body);
-          // print("Meta = ${meta["meta"]["url_info"]["id"]}");
+          var meta = json.decode(responseTwo.body);
+          print("Data = ${meta["meta"]["url_info"]["id"]}");
+
+          // print(responseTwo.body);
 
           final responseSeconde = await http.get(
-            Uri.parse(data["data"]["links"]["self"]),
+            Uri.parse(linkScanUrlAnalysisReport + "/" + meta["meta"]["url_info"]["id"]),
             headers: {'x-apikey': xApiToken},
           );
-          var meta = json.decode(responseSeconde.body);
+          var res = json.decode(responseSeconde.body);
 
-          // print(meta["data"]["attributes"]);
+          // print(meta["data"]);
 
-          Body model = Body.fromJson(meta["data"]);
+          // JsonEncoder encoder = const JsonEncoder.withIndent('  ');
+          // String prettyprint = encoder.convert(res);
+          // debugPrint(prettyprint);
+
+          Body model = Body.fromJson(res["data"]);
+          // print("Respone: ${model.attributes}");
           if (data["data"] != null) {
+            // print("Respone: ${model.attributes}");
             return model;
           } else {
             print("error!!!!");
           }
-          // return responseSeconde;
+          return model;
         } else {
           throw ('An error occurred when requesting Posts');
         }
@@ -59,55 +68,17 @@ class Data {
     }
     return null;
   }
+
+  Future <String?> selectmodel() async {
+    try{
+      String sms = "Hello";
+      final response = await http.post(Uri.parse("https://select-model-vjqykiu2ba-uc.a.run.app"),
+          body: {"sms": sms});
+          print(response.body);
+    }catch(e){
+      print("Error : ${e.toString()}");
+    }
+    return null;
+  }
+
 }
-
-
-// {
-//   "data": {
-//     "id": "90672acf2f5cafcae45c663fa7ab26d98bc9d846b7995d4fb941433f8e604e7a",
-//     "type": "url",
-//     "links": {
-//       "self": "https://www.virustotal.com/api/v3/urls/90672acf2f5cafcae45c663fa7ab26d98bc9d846b7995d4fb941433f8e604e7a"
-//     },
-//     "attributes": {
-//       "tld": "ly",
-//       "tags": [
-//         "multiple-redirects"
-//       ],
-//       "title": "LINE",
-//       "url": "http://bit.ly/3Dac9eS",
-//       "last_modification_date": 1714482024,
-//       "trackers": {
-//         "Google Tag Manager": [
-//           {
-//             "url": "//www.googletagmanager.com/gtm.js?id=' + i + dl",
-//             "id": "GTM-TVHZDL",
-//             "timestamp": 1714478063
-//           }
-//         ]
-//       },
-//       "last_http_response_code": 200,
-//       "reputation": -1,
-//       "categories": {
-//         "BitDefender": "computersandsoftware",
-//         "Xcitium Verdict Cloud": "web applications",
-//         "Sophos": "information technology",
-//         "Forcepoint ThreatSeeker": "web hosting"
-//       },
-//       "times_submitted": 3,
-//       "first_submission_date": 1702001028,
-//       "redirection_chain": [
-//         "http://bit.ly/3Dac9eS",
-//         "https://lin.ee/TqMLsev"
-//       ],
-//       "last_analysis_stats": {
-//         "malicious": 2,
-//         "suspicious": 0,
-//         "undetected": 19,
-//         "harmless": 71,
-//         "timeout": 0
-//       },
-//       "last_analysis_date": 1714482010
-//     }
-//   }
-// }
