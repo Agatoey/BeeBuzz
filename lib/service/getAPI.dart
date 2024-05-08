@@ -42,14 +42,11 @@ class Data {
           );
           var res = json.decode(responseSeconde.body);
 
-          // print(meta["data"]);
-
           // JsonEncoder encoder = const JsonEncoder.withIndent('  ');
           // String prettyprint = encoder.convert(res);
           // debugPrint(prettyprint);
 
           Body model = Body.fromJson(res["data"]);
-          // print("Respone: ${model.attributes}");
           if (data["data"] != null) {
             // print("Respone: ${model.attributes}");
             return model;
@@ -69,16 +66,29 @@ class Data {
     return null;
   }
 
-  Future <String?> selectmodel() async {
-    try{
-      String sms = "Hello";
-      final response = await http.post(Uri.parse("https://select-model-vjqykiu2ba-uc.a.run.app"),
-          body: {"sms": sms});
-          print(response.body);
-    }catch(e){
+  Future<String?> selectmodel(String sms) async {
+    try {
+      var headers = {'Content-Type': 'application/json'};
+      var request = http.Request(
+          'POST', Uri.parse('https://select-model-vjqykiu2ba-uc.a.run.app'));
+      // var request = http.Request(
+      //     'POST', Uri.parse('http://127.0.0.1:5001/app-beebuzz/us-central1/select_model2'));
+      request.body = json.encode({"sms": sms});
+      request.headers.addAll(headers);
+
+      http.StreamedResponse response = await request.send();
+
+      if (response.statusCode == 200) {
+        Map<String, dynamic> json = jsonDecode(await response.stream.bytesToString());
+        var model = json["model"].toString();
+        // print(model + ": ${sms}");
+        return model;
+      } else {
+        print(response.reasonPhrase);
+      }
+    } catch (e) {
       print("Error : ${e.toString()}");
     }
     return null;
   }
-
 }

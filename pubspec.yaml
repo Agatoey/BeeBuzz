@@ -60,6 +60,10 @@ dependencies:
   arc_progress_bar_new: ^1.0.4
   dashed_circular_progress_bar: ^0.0.6
   json_pretty: ^1.0.4
+  flutter_libphonenumber: ^2.2.3
+  firebase_database: ^10.5.5
+  tflite_flutter: ^0.10.4
+  # flutter_launcher_icons: ^0.13.1
 
 
 dev_dependencies:
@@ -72,6 +76,12 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^2.0.0
+  flutter_launcher_icons: ^0.13.1
+  
+flutter_icons:
+  android: "launcher_icon"
+  image_path: assets/icon/logos.png
+  min_sdk_android: 21
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -88,6 +98,7 @@ flutter:
   assets:
   - assets/images/
   - assets/fonts/
+  - assets/models/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

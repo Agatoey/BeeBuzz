@@ -17,63 +17,49 @@ class VirusTotalModel {
   Map<String, dynamic> toJson() => {'data': data.toJson()};
 }
 
-// List<Body> listFromBody(String str) => List<Body>.from(
-//     json.decode(str).map((x) => Body.fromJson(x)));
-
-// List<Body> parseBodys(String jsonStr) {
-//   final parsed = json.decode(jsonStr).cast<Map<String, dynamic>>();
-//   return parsed.map<Body>((json) => Body.fromJson(json)).toList();
-// }
-
 class Body {
-  Body({required this.attributes, required this.id});
+  Body({
+    required this.attributes,
+    // required this.id
+  });
 
   Map<String, dynamic> attributes;
-  String id;
+  // String id;
 
   factory Body.fromJson(Map<String, dynamic> jSon) => Body(
-      attributes: Map<String, dynamic>.from(jSon["attributes"]),
-      id: jSon["id"].toString());
-
-  Map<String, dynamic> toJson() => {"attributes": attributes, "id": id};
-}
-
-// List<Attributes> parseBody(String jsonStr) {
-//   final parsed = json.decode(jsonStr).cast<Map<String, dynamic>>();
-//   return parsed.map<Attributes>((json) => Attributes.fromJson(json)).toList();
-// }
-
-// List<Attributes> listFromAttributes(String str) => List<Attributes>.from(
-//     json.decode(str).map((x) => Attributes.fromJson(x)));
-
-class Attributes {
-  Attributes({required this.categories});
-
-  Categories categories;
-
-  factory Attributes.fromJson(Map<String, dynamic> jSon) =>
-      Attributes(categories: Categories.fromJson(jSon["categories"]));
-
-  Map<String, dynamic> toJson() => {
-        'categories': categories.toJson(),
-      };
-}
-
-// List<Categories> parseCategories(String jsonStr) {
-//   final parsed = json.decode(jsonStr).cast<Map<String, dynamic>>();
-//   return parsed.map<Categories>((json) => Categories.fromJson(json)).toList();
-// }
-
-class Categories {
-  Categories({required this.bitDefender});
-
-  String bitDefender;
-
-  factory Categories.fromJson(Map<String, dynamic> json) => Categories(
-        bitDefender: json["BitDefender"].toString(),
+        attributes: Map<String, dynamic>.from(jSon["attributes"]),
+        // id: jSon["id"].toString()
       );
 
   Map<String, dynamic> toJson() => {
-        'BitDefender': bitDefender,
+        "attributes": attributes,
+        // "id": id
       };
 }
+
+// class Attributes {
+//   Attributes({required this.categories});
+
+//   Categories categories;
+
+//   factory Attributes.fromJson(Map<String, dynamic> jSon) =>
+//       Attributes(categories: Categories.fromJson(jSon["categories"]));
+
+//   Map<String, dynamic> toJson() => {
+//         'categories': categories.toJson(),
+//       };
+// }
+
+// class Categories {
+//   Categories({required this.bitDefender});
+
+//   String bitDefender;
+
+//   factory Categories.fromJson(Map<String, dynamic> json) => Categories(
+//         bitDefender: json["BitDefender"].toString(),
+//       );
+
+//   Map<String, dynamic> toJson() => {
+//         'BitDefender': bitDefender,
+//       };
+// }

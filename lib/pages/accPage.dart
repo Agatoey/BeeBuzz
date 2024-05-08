@@ -18,6 +18,7 @@ class AccPage extends StatefulWidget {
 class _AccPageState extends State<AccPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn googleSignIn = GoogleSignIn();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   final user = FirebaseAuth.instance.currentUser;
   AuthMethods userAuth = AuthMethods();
@@ -160,19 +161,19 @@ class _AccPageState extends State<AccPage> {
   Future<void> _showAlertDialog() async {
     return showDialog<void>(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true,
       builder: (BuildContext context) {
         return AlertDialog(
             backgroundColor: const Color(0xFFECECEC),
             title: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
-                    padding: EdgeInsets.all(5),
-                    child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: Icon(Icons.close, size: 20))),
+                // Padding(
+                //     padding: EdgeInsets.all(5),
+                //     child: SizedBox(
+                //         width: 20,
+                //         height: 20,
+                //         child: Icon(Icons.close, size: 20))),
                 Padding(
                     padding: EdgeInsets.only(top: 10),
                     child: Center(
@@ -218,13 +219,14 @@ class _AccPageState extends State<AccPage> {
                                     .doc(userid)
                                     .delete();
                                 var provider;
-                                AuthMethods().signOut(provider);
+                                _auth.signOut();
+                                // AuthMethods().signOut(provider);
                                 Navigator.pushReplacement(
                                     context,
                                     MaterialPageRoute(
                                         builder: (context) =>
                                             const LoginPage()));
-                                print("ลบสำเร็จ");
+                                // print("ลบสำเร็จ");
                               })),
                       Container(
                         width: 115,

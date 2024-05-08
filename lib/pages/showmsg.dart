@@ -3,6 +3,8 @@ import 'package:appbeebuzz/pages/allSMS.dart';
 import 'package:appbeebuzz/constant.dart';
 import 'package:appbeebuzz/pages/static.dart';
 import 'package:appbeebuzz/style.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class ShowMsg extends StatefulWidget {
@@ -10,37 +12,25 @@ class ShowMsg extends StatefulWidget {
     super.key,
     required this.messages,
     required this.name,
-    // required this.state,
   });
 
   final List<Messages> messages;
   final String name;
-  // final List state;
 
   @override
   State<ShowMsg> createState() => _ShowMsgState();
 }
 
 class _ShowMsgState extends State<ShowMsg> {
-  List<String> filterTexts = ["free", "click", "สวัสดี"];
+  List<dynamic>? filterTexts;
+  final user = FirebaseAuth.instance.currentUser;
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  bool state = false;
 
   @override
   void initState() {
     super.initState();
-    textFilter();
-  }
-
-  textFilter() {
-    // debugPrint("Before Filter : ${widget.messages.length}");
-    widget.messages.removeWhere((message) {
-      for (var textFilter in filterTexts) {
-        if (message.body.contains(textFilter)) {
-          return true;
-        }
-      }
-      return false;
-    });
-    // debugPrint("After Fillter : ${widget.messages.length}");
+    state = false;
   }
 
   @override
@@ -58,13 +48,12 @@ class _ShowMsgState extends State<ShowMsg> {
                   MaterialPageRoute(builder: (context) => const Allsms()));
             }),
       ),
-      body: Container(
-        child: message(context),
-      ),
+      body: Container(child: message(context)),
     );
   }
 
   Widget message(BuildContext context) {
+    // if (state == true) {
     return Container(
       margin: const EdgeInsets.only(left: 30, top: 30),
       child: ListView.builder(
@@ -105,10 +94,9 @@ class _ShowMsgState extends State<ShowMsg> {
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) => Showstatic(
-                                            messages: widget.messages,
-                                            name: widget.name,
-                                            info : item
-                                          )));
+                                          messages: widget.messages,
+                                          name: widget.name,
+                                          info: item)));
                             },
                           ),
                           Container(
@@ -159,5 +147,24 @@ class _ShowMsgState extends State<ShowMsg> {
                     ]));
           }),
     );
+    // }
+    // return Container(
+    //     alignment: Alignment.center,
+    //     child: Column(
+    //       crossAxisAlignment: CrossAxisAlignment.center,
+    //       mainAxisAlignment: MainAxisAlignment.center,
+    //       children: [
+    //         const Text(
+    //           "loading...",
+    //           style: TextStyle(fontFamily: "Kanit", fontSize: 15),
+    //         ),
+    //         Container(
+    //           padding: const EdgeInsets.all(10),
+    //           child: CircularProgressIndicator(
+    //             valueColor: AlwaysStoppedAnimation(mainScreen),
+    //           ),
+    //         ),
+    //       ],
+    //     ));
   }
 }

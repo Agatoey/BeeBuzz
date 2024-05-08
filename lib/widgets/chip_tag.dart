@@ -1,4 +1,6 @@
 import 'package:appbeebuzz/constant.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
@@ -25,7 +27,7 @@ class ChipTags extends StatefulWidget {
   final InputDecoration? decoration;
   final TextInputType? keyboardType;
   final String? separator;
-  final List<String> list;
+  final List<dynamic> list;
   final ChipPosition chipPosition;
   final bool createTagOnSubmit;
   final TextEditingController inputController;
@@ -37,6 +39,8 @@ class ChipTags extends StatefulWidget {
 class _ChipTagsState extends State<ChipTags>
     with SingleTickerProviderStateMixin {
   final FocusNode _focusNode = FocusNode();
+  final user = FirebaseAuth.instance.currentUser;
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   ///Form key for TextField
   final _formKey = GlobalKey<FormState>();
@@ -46,6 +50,7 @@ class _ChipTagsState extends State<ChipTags>
   void initState() {
     visible = false;
     visibleState();
+
     super.initState();
   }
 
@@ -63,6 +68,9 @@ class _ChipTagsState extends State<ChipTags>
       print("${widget.inputController.text} สถานะ isNotEmpty $visible");
     }
   }
+
+  List<dynamic>? listKeyword;
+
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +108,7 @@ class _ChipTagsState extends State<ChipTags>
                     fontWeight: FontWeight.w600)),
             SizedBox(height: 10),
             Text(
-              "สกรีนข้อความเบื้องต้น ด้วยคำที่คุณไม่อยากเห็น",
+              "Filter message out with words you don't want to see",
               style: TextStyle(
                   fontFamily: "Kanit",
                   color: Color(0xFF636363),
@@ -117,7 +125,7 @@ class _ChipTagsState extends State<ChipTags>
         child: Row(
           children: [
             const Text(
-              "กด",
+              "Press",
               style: TextStyle(
                   fontFamily: "Inter",
                   color: Color(0xFF636363),
@@ -144,7 +152,7 @@ class _ChipTagsState extends State<ChipTags>
               ),
             ),
             const Text(
-              "เพื่อเพิ่มคำ",
+              "to add keyword",
               style: TextStyle(
                   fontFamily: "Inter",
                   color: Color(0xFF636363),
@@ -195,8 +203,11 @@ class _ChipTagsState extends State<ChipTags>
               textInputAction: TextInputAction.done,
               focusNode: _focusNode,
               onSubmitted: widget.createTagOnSubmit
-                  ? (value) {
+                  ? (value) async {
                       widget.list.add(value);
+                      await firestore.collection("users").doc(user!.uid).set(
+                          {'filter': widget.list},
+                          SetOptions(merge: true)).then((value) {});
                       widget.inputController.clear();
                       _formKey.currentState!.reset();
                       setState(() {});
@@ -205,7 +216,7 @@ class _ChipTagsState extends State<ChipTags>
                   : null,
               onChanged: widget.createTagOnSubmit
                   ? null
-                  : (value) {
+                  : (value) async {
                       visibleState();
                       if (widget.inputController.text.isNotEmpty) {
                         if (value.endsWith(widget.separator ?? " ")) {
@@ -214,6 +225,11 @@ class _ChipTagsState extends State<ChipTags>
                             widget.list.add(value
                                 .replaceFirst(widget.separator ?? " ", '')
                                 .trim());
+                            await firestore
+                                .collection("users")
+                                .doc(user!.uid)
+                                .set({'filter': widget.list},
+                                    SetOptions(merge: true)).then((value) {});
                           }
                           widget.inputController.clear();
                           _formKey.currentState!.reset();
@@ -249,7 +265,7 @@ class _ChipTagsState extends State<ChipTags>
                   fontFamily: Icons.check.fontFamily,
                 ),
               ),
-              onPressed: () {
+              onPressed: () async {
                 print(widget.list);
                 var value = widget.inputController.text;
                 if (value.isNotEmpty) {
@@ -259,6 +275,9 @@ class _ChipTagsState extends State<ChipTags>
                   if (value != widget.separator &&
                       !widget.list.contains(value.trim())) {
                     widget.list.add(value);
+                    await firestore.collection("users").doc(user!.uid).set(
+                        {'filter': widget.list},
+                        SetOptions(merge: true)).then((value) {});
                   }
                   widget.inputController.clear();
                   _formKey.currentState!.reset();
@@ -310,8 +329,13 @@ class _ChipTagsState extends State<ChipTags>
                             ),
                           ),
                           padding: EdgeInsets.zero,
-                          onDeleted: () {
+                          onDeleted: () async {
                             widget.list.remove(text);
+                            await firestore
+                                .collection("users")
+                                .doc(user!.uid)
+                                .set({'filter': widget.list},
+                                    SetOptions(merge: true)).then((value) {});
                             setState(() {});
                           },
                           onSelected: (_) {}));

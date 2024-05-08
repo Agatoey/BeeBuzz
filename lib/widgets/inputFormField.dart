@@ -29,6 +29,8 @@ class InputFormFieldState extends State<InputFormField> {
         return const Icon(Icons.person, color: Colors.black45);
       case 'phone':
         return const Icon(Icons.phone_android, color: Colors.black45);
+      case 'otp':
+        return const Icon(Icons.textsms_outlined, color: Colors.black45);
       default:
         return null;
     }
@@ -45,18 +47,22 @@ class InputFormFieldState extends State<InputFormField> {
       case 'phone':
         return TextInputType.number;
       default:
-        return null;
+        return TextInputType.text;
     }
   }
 
   Widget cerrectPhoneNumber(int length) {
     return length > 9
         ? Container(
-                margin: const EdgeInsets.all(12),
-                decoration: const BoxDecoration(
-                    shape: BoxShape.circle, color: Colors.green),
-                child: const Icon(Icons.done , color: Colors.white, size: 20,),
-              )
+            margin: const EdgeInsets.all(12),
+            decoration: const BoxDecoration(
+                shape: BoxShape.circle, color: Colors.green),
+            child: const Icon(
+              Icons.done,
+              color: Colors.white,
+              size: 20,
+            ),
+          )
         : const SizedBox(
             width: 5,
             height: 5,
@@ -87,7 +93,7 @@ class InputFormFieldState extends State<InputFormField> {
             suffixIcon: widget.type == "phone"
                 ? cerrectPhoneNumber(widget.controller.text.length)
                 : null),
-        keyboardType: TextInputType.emailAddress,
+        keyboardType: textType(widget.type),
         onChanged: (val) {
           if (widget.type == "phone") {
             setState(() {
@@ -107,6 +113,9 @@ class InputFormFieldState extends State<InputFormField> {
             }
             if (widget.type == "phone") {
               return "Please input Phone Number";
+            }
+            if (widget.type == "otp") {
+              return "Please input OTP Code";
             }
           }
 

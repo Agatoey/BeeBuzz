@@ -1,5 +1,4 @@
 import 'package:appbeebuzz/constant.dart';
-import 'package:appbeebuzz/pages/SMS_messages.dart';
 import 'package:appbeebuzz/pages/login.dart';
 import 'package:appbeebuzz/pages/OTPreader.dart';
 import 'package:appbeebuzz/style.dart';
@@ -7,6 +6,7 @@ import 'package:appbeebuzz/utils/auth_methods.dart';
 import 'package:appbeebuzz/widgets/inputFormField.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart' as q;
 import 'package:flutter/material.dart';
 import 'package:flutter_advanced_segment/flutter_advanced_segment.dart';
 
@@ -157,7 +157,7 @@ class _RegisterState extends State<Register> {
           buildButtonVerification(),
           // buildTextFieldPassword(),
           // buildTextFieldPasswordConfirm(),
-          buildButtonLogin("phone"),
+          // buildButtonLogin("phone"),
         ],
       ),
     );
@@ -303,6 +303,7 @@ class _RegisterState extends State<Register> {
           borderRadius: BorderRadius.circular(16), color: mainScreen),
       child: TextButton(
         onPressed: () {
+          _phoneformKey.currentState?.validate();
           phoneAuth();
         },
         child: const Center(
@@ -358,27 +359,70 @@ class _RegisterState extends State<Register> {
     );
   }
 
+  Future<bool> checkPhoneNumberAlreadyUsed(String phoneNumber) async {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .where('username', isEqualTo: phoneNumber)
+        .get();
+    return querySnapshot.docs.isNotEmpty;
+  }
+
   Future<void> phoneAuth() async {
     try {
-      await _auth.verifyPhoneNumber(
-        phoneNumber: "+66821308781",
-        // phoneNumber: phoneNumberController.text.trim().toString(),
-        timeout: const Duration(seconds: 60),
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          await _auth.signInWithCredential(credential);
-        },
-        verificationFailed: (FirebaseAuthException ex) {
-          throw Exception(ex.message);
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {},
-        codeSent: (String verificationId, int? resendtoken) {
-          Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                  builder: (context) =>
-                      OTPreader(verificationId: verificationId)));
-        },
-      );
+      String phoneNumber = phoneNumberController.text.trim();
+      if (phoneNumber.startsWith('0') && phoneNumber.length == 10) {
+        print(phoneNumber.length);
+        phoneNumber = '+66${phoneNumber.substring(1)}';
+      } else if (phoneNumber.startsWith('+66')) {
+        if (phoneNumber.startsWith('+660')) {
+          if (phoneNumber.length == 13) {
+            print(phoneNumber.length);
+            phoneNumber = '+66${phoneNumber.substring(4)}';
+          } else {
+            errrorText("รูปแบบไม่ถูกต้อง", Colors.red);
+          }
+        } else if (phoneNumber.length == 12) {
+          print(phoneNumber.length);
+          phoneNumber = phoneNumber;
+        } else {
+          errrorText("รูปแบบไม่ถูกต้อง", Colors.red);
+        }
+      }
+      // else if (phoneNumber.length < 10 ||
+      //     phoneNumber.length > 13 ||
+      //     phoneNumber.length == 11) {
+      //   phoneNumber = "";
+      //   errrorText("รูปแบบไม่ถูกต้อง", Colors.red);
+      // }
+
+      print(phoneNumber);
+      bool phoneNumberAlreadyUsed =
+          await checkPhoneNumberAlreadyUsed(phoneNumber);
+      print(phoneNumberAlreadyUsed);
+      if (phoneNumberAlreadyUsed == false) {
+        await _auth.verifyPhoneNumber(
+          phoneNumber: phoneNumber,
+          timeout: const Duration(seconds: 60),
+          verificationCompleted: (PhoneAuthCredential credential) async {
+            await _auth.signInWithCredential(credential);
+          },
+          verificationFailed: (FirebaseAuthException ex) {
+            throw Exception(ex.message);
+          },
+          codeAutoRetrievalTimeout: (String verificationId) {},
+          codeSent: (String verificationId, int? resendtoken) {
+            Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => OTPreader(
+                          verificationId: verificationId,
+                          phoneNumber: phoneNumber,
+                        )));
+          },
+        );
+      } else if (phoneNumberAlreadyUsed == true) {
+        errrorText("Phone Number Already in Used", Colors.red);
+      }
     } on FirebaseAuthException catch (e) {
       errrorText(e.message.toString(), Colors.red);
     }
@@ -399,7 +443,8 @@ class _RegisterState extends State<Register> {
           'profilePhoto':
               "https://cdn-icons-png.freepik.com/512/4945/4945750.png",
           'email': email,
-          'providers': "password"
+          'providers': "password",
+          'filter': []
         });
         user.user?.updateDisplayName(userName);
         user.user!.updatePhotoURL(
@@ -411,7 +456,13 @@ class _RegisterState extends State<Register> {
         print("Sign up user successful ${AuthMethods().authChange.isEmpty}");
       }).catchError((error) {
         // errrorText("กรุณากรอกข้อมูลให้ครบ", Colors.red);
-        print(error.message);
+        if (error.message ==
+            "The email address is already in use by another account.") {
+          print("Email ถูกใช้ไปแล้ว");
+          errrorText(error.message, Colors.red);
+        }
+
+        print("Error : ${error.message}");
       });
     }
   }
@@ -422,16 +473,4 @@ class _RegisterState extends State<Register> {
       backgroundColor: color,
     ));
   }
-
-  // int validate(String address) {
-  //   String patttern = r'(^[a-zA-Z0-9 ,.-]*$)';
-  //   RegExp regExp = new RegExp(patttern);
-  //   if (address.isEmpty || address.length == 0) {
-  //     return 1;
-  //   } else if (address.length < 10) {
-  //     return 3;
-  //   } else {
-  //     return 0;
-  //   }
-  // }
 }

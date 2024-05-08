@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 class MessageModel {
   MessageModel(
       {required this.name, required this.photo, required this.messages});
@@ -19,40 +21,34 @@ class Messages {
       required this.date,
       required this.time,
       required this.score,
+      required this.scoresms,
       required this.state,
-      required this.link,
-      required this.linkState});
+      required this.linkbody,
+      required this.linktype,
+      required this.scorelink,
+      required this.model});
 
   String body;
   DateTime date;
   String time;
   int score;
+  double scoresms;
   int state;
-  String link;
-  String linkState;
+  String linkbody;
+  String? linktype;
+  double scorelink;
+  String model;
 
   Map<String, dynamic> toJson() => {
         'body': body,
         'date': date.toString(),
         'time': time,
         'score': score,
+        'scoresms':scoresms,
         'state': state,
-        'link': link,
-        'linkState': linkState
+        'linkbody': linkbody,
+        'linktype': linktype,
+        'scorelink':scorelink,
+        'model': model
       };
 }
-
-// class Link {
-//   Link({
-//     required this.state,
-//     required this.link,
-//   });
-
-//   bool state;
-//   int link;
-
-//   Map<String, dynamic> toJson() => {
-//         'state': state,
-//         'link': link,
-//       };
-// }

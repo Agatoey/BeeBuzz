@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:appbeebuzz/constant.dart';
-import 'package:appbeebuzz/pages/SMS_messages.dart';
 import 'package:appbeebuzz/pages/allSMS.dart';
 import 'package:appbeebuzz/style.dart';
 import 'package:flutter/material.dart';

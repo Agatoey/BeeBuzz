@@ -6,6 +6,7 @@ import 'package:appbeebuzz/pages/showmsg.dart';
 import 'package:appbeebuzz/service/getAPI.dart';
 import 'package:appbeebuzz/style.dart';
 import 'package:arc_progress_bar_new/arc_progress_bar_new.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:dashed_circular_progress_bar/dashed_circular_progress_bar.dart';
 
@@ -33,14 +34,17 @@ class _ShowstaticState extends State<Showstatic> {
   // bool link = false;
 
   String? type;
+  late bool state;
 
   Body? res;
+
+  FirebaseFirestore db = FirebaseFirestore.instance;
 
   @override
   void initState() {
     super.initState();
     calculateState();
-    calculateStateNew();
+    state = false;
     getURL();
   }
 
@@ -48,65 +52,72 @@ class _ShowstaticState extends State<Showstatic> {
     if (widget.info.state == 0) {
       setState(() {
         real = widget.info.score * 3.34;
-      });
-    }
-    if (widget.info.state == 1) {
-      setState(() {
-        real = (widget.info.score - 30) * 2.5;
-      });
-    }
-
-    if (widget.info.state == 2) {
-      setState(() {
-        real = (widget.info.score - 70) * 3.34;
-      });
-    }
-  }
-
-  calculateStateNew() {
-    if (widget.info.state == 0) {
-      setState(() {
         realNew = widget.info.score * 0.83;
         colorhandle = greenState;
       });
     }
     if (widget.info.state == 1) {
       setState(() {
+        real = (widget.info.score - 30) * 2.5;
         realNew = (widget.info.score + 10) * 0.83;
         colorhandle = yelloState;
       });
     }
-
     if (widget.info.state == 2) {
       setState(() {
+        real = (widget.info.score - 70) * 3.34;
         realNew = (widget.info.score + 20) * 0.83;
         colorhandle = redState;
       });
     }
   }
 
-    getURL() async {
-    if (widget.info.link.isNotEmpty) {
-      res = await Data().xSendUrlScan(widget.info.link.toString());
-      // JsonEncoder encoder = const JsonEncoder.withIndent('  ');
-      String category = res!.attributes["categories"].keys.first;
-      // String prettyprint =
-      //     encoder.convert(res!.attributes["categories"][category]);
-      // debugPrint(prettyprint);
+  getURL() async {
+    if (widget.info.linkbody.isNotEmpty) {
+      res = await Data().xSendUrlScan(widget.info.linkbody.toString());
+      if (res == null) {
+        setState(() {
+          type = "Unkown";
+          state = true;
+        });
+      }
+
+      type = res!.attributes["categories"]["Webroot"];
+      if (type == null) {
+        setState(() {
+          type = res!.attributes["categories"]["Forcepoint ThreatSeeker"];
+          state = true;
+        });
+      } else if (res!.attributes["categories"]["Forcepoint ThreatSeeker"] ==
+          null) {
+        setState(() {
+          type = "Unkown";
+          state = true;
+        });
+      }
       setState(() {
-        type = "${res!.attributes["categories"][category]}";
+        state = true;
       });
-      print(type);
-    } else {
-      type = "null";
     }
+    state = true;
+  }
+
+  int? count;
+
+  countDoc() async {
+    var myRef = db.collection('sms');
+    var snapshot = await myRef.count().get();
+    setState(() {
+      count = snapshot.count;
+    });
+    print('collection Sum ${snapshot.count}');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: bgYellow,
-        appBar: AppBar(
+      backgroundColor: bgYellow,
+      appBar: AppBar(
           centerTitle: false,
           title: Text(widget.name, style: textHead),
           backgroundColor: mainScreen,
@@ -119,43 +130,26 @@ class _ShowstaticState extends State<Showstatic> {
                       builder: (context) => ShowMsg(
                           messages: widget.messages, name: widget.name)));
             },
-          ),
-        ),
-        body: body()
-
-        // FutureBuilder(
-        //   future: getURL(),
-        //   builder: (context, snapshot) {
-        //     if (snapshot.connectionState == ConnectionState.waiting) {
-        //       return Container(
-        //         alignment: Alignment.center,
-        //         child: CircularProgressIndicator(
-        //           valueColor: AlwaysStoppedAnimation(mainScreen),
-        //         ),
-        //       );
-        //     }
-        //     return body();
-        //   },
-        // )
-        );
+          )),
+      body: body(),
+    );
   }
 
   Widget body() {
-    if (res != null || type == "null") {
+    if (res != null || state == true) {
       return SingleChildScrollView(
           child: Container(
               padding: const EdgeInsets.all(20),
               alignment: Alignment.topCenter,
               child: Column(
                 children: [
-                  Container(
+                  SizedBox(
                       width: 240,
                       child: Stack(alignment: Alignment.topCenter, children: [
                         // ส่วนที่ 1
                         Container(
                           margin: const EdgeInsets.only(top: 8),
                           child: DashedCircularProgressBar.square(
-                            // progress: real,
                             dimensions: 226,
                             startAngle: 270,
                             sweepAngle: 42,
@@ -165,9 +159,6 @@ class _ShowstaticState extends State<Showstatic> {
                             backgroundColor: greenState,
                             foregroundStrokeWidth: 15,
                             backgroundStrokeWidth: 15,
-                            // seekColor:
-                            //     state == 0 ? greenState : Colors.transparent,
-                            // seekSize: 30,
                             animation: true,
                           ),
                         ),
@@ -175,7 +166,6 @@ class _ShowstaticState extends State<Showstatic> {
                         Container(
                           margin: const EdgeInsets.only(top: 8),
                           child: DashedCircularProgressBar.square(
-                            // progress: real,
                             dimensions: 226,
                             startAngle: 332,
                             sweepAngle: 56,
@@ -185,9 +175,6 @@ class _ShowstaticState extends State<Showstatic> {
                             backgroundColor: yelloState,
                             foregroundStrokeWidth: 15,
                             backgroundStrokeWidth: 15,
-                            // seekColor:
-                            //     state == 1 ? yelloState : Colors.transparent,
-                            // seekSize: 30,
                             animation: true,
                           ),
                         ),
@@ -195,7 +182,6 @@ class _ShowstaticState extends State<Showstatic> {
                         Container(
                           margin: const EdgeInsets.only(top: 8),
                           child: DashedCircularProgressBar.square(
-                            // progress: real,
                             dimensions: 226,
                             startAngle: 48,
                             sweepAngle: 42,
@@ -205,47 +191,41 @@ class _ShowstaticState extends State<Showstatic> {
                             backgroundColor: redState,
                             foregroundStrokeWidth: 15,
                             backgroundStrokeWidth: 15,
-                            // seekColor:
-                            //     state == 2 ? redState : Colors.transparent,
-                            // seekSize: 30,
                             animation: true,
                           ),
                         ),
                         Container(
-                          // color: Colors.white.withOpacity(0.5),
-                          // padding: const EdgeInsets.only(top: 20),
-                          child: ArcProgressBar(
-                            percentage: realNew,
-                            arcThickness: 15,
-                            strokeCap: StrokeCap.round,
-                            innerPadding: 15,
-                            handleSize: 30,
-                            animationDuration: Duration.zero,
-                            foregroundColor: Colors.transparent,
-                            backgroundColor: Colors.transparent,
-                            // handleColor: Colorhandle,
-                            handleWidget: Container(
-                                decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    border: Border.all(
-                                      color: colorhandle,
-                                      width: 6,
-                                    ),
-                                    borderRadius: const BorderRadius.all(
-                                        Radius.circular(100)))),
-                          ),
-                        ),
+                            // color: Colors.white.withOpacity(0.5),
+                            // padding: const EdgeInsets.only(top: 20),
+                            child: ArcProgressBar(
+                                percentage: realNew,
+                                arcThickness: 15,
+                                strokeCap: StrokeCap.round,
+                                innerPadding: 15,
+                                handleSize: 30,
+                                animationDuration: Duration.zero,
+                                foregroundColor: Colors.transparent,
+                                backgroundColor: Colors.transparent,
+                                // handleColor: Colorhandle,
+                                handleWidget: Container(
+                                    decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        border: Border.all(
+                                          color: colorhandle,
+                                          width: 6,
+                                        ),
+                                        borderRadius: const BorderRadius.all(
+                                            Radius.circular(100)))))),
                         Positioned(bottom: 80, child: circleState()),
                         Positioned(
                             bottom: 30,
-                            child:
-                                Text('ระดับความเสี่ยง : ${widget.info.score}',
-                                    style: const TextStyle(
-                                      color: Color(0xFF83868E),
-                                      fontSize: 16,
-                                      fontFamily: 'Kanit',
-                                      fontWeight: FontWeight.w500,
-                                    )))
+                            child: Text('Risk level : ${widget.info.score}',
+                                style: const TextStyle(
+                                  color: Color(0xFF83868E),
+                                  fontSize: 16,
+                                  fontFamily: 'Kanit',
+                                  fontWeight: FontWeight.w500,
+                                )))
                       ])),
                   Container(
                     width: 400,
@@ -295,24 +275,113 @@ class _ShowstaticState extends State<Showstatic> {
                               )),
                         ),
                         Visibility(
-                            visible: widget.info.link.isNotEmpty,
+                            visible: widget.info.linkbody.isNotEmpty,
                             child: _linkInfo()),
                       ],
                     ),
+                  ),
+                  Container(
+                      padding: const EdgeInsets.only(top: 50),
+                      child: Text("Do you think this message is fraud")),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                          alignment: Alignment.center,
+                          width: 120,
+                          height: 40,
+                          margin: const EdgeInsets.all(10),
+                          padding: const EdgeInsets.all(10),
+                          decoration: ShapeDecoration(
+                              color: const Color(0xFFECECEC),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                              shadows: <BoxShadow>[
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 1,
+                                  offset: Offset(0, 2),
+                                )
+                              ]),
+                          child: TextButton(
+                            onPressed: () async {
+                              await countDoc();
+                              db.collection("sms").doc("${count! + 1}").set({
+                                "respone": "yes",
+                                "all_score": widget.info.score,
+                                "score link": 0,
+                                "score sms": 0,
+                                "sms": widget.info.body
+                              });
+                            },
+                            style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                foregroundColor: Colors.white.withOpacity(0)),
+                            child: const Text("Yes",
+                                style: TextStyle(color: Color(0xFF7A7A7A))),
+                          )),
+                      Container(
+                          alignment: Alignment.center,
+                          width: 120,
+                          height: 40,
+                          margin: const EdgeInsets.all(10),
+                          padding: const EdgeInsets.all(10),
+                          decoration: ShapeDecoration(
+                              color: const Color(0xFFECECEC),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                              shadows: <BoxShadow>[
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 1,
+                                  offset: Offset(0, 2),
+                                )
+                              ]),
+                          child: TextButton(
+                            onPressed: () async {
+                              await countDoc();
+                              db.collection("sms").doc("${count! + 1}").set({
+                                "respone": "no",
+                                "all_score": widget.info.score,
+                                "score link": 0,
+                                "score sms": 0,
+                                "sms": widget.info.body
+                              });
+                            },
+                            style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                foregroundColor: Colors.white.withOpacity(0)),
+                            child: const Text("No",
+                                style: TextStyle(color: Color(0xFF7A7A7A))),
+                          )),
+                    ],
                   )
                 ],
               )));
     }
     return Container(
-      alignment: Alignment.center,
-      child: CircularProgressIndicator(
-        valueColor: AlwaysStoppedAnimation(mainScreen),
-      ),
-    );
+        alignment: Alignment.center,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              "loading...",
+              style: TextStyle(fontFamily: "Kanit", fontSize: 15),
+            ),
+            Container(
+              padding: const EdgeInsets.all(10),
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation(mainScreen),
+              ),
+            ),
+          ],
+        ));
   }
 
   Widget _linkInfo() {
-    print(widget.info.link);
+    // print(widget.info.linkbody);
     return Column(
       children: [
         Row(
@@ -330,17 +399,17 @@ class _ShowstaticState extends State<Showstatic> {
                   return Icon(Icons.priority_high,
                       color: Colors.white, size: constraint.biggest.height);
                 })),
-            const Text("ตรวจพบลิ้งค์ที่ไม่ปลอดภัย",
+            const Text("Potentially unsafe link detected",
                 style: TextStyle(
-                    fontFamily: "Saraban",
+                    fontFamily: "Inter",
                     fontSize: 13,
                     color: Color(0xFF7A7A7A)),
                 textAlign: TextAlign.center)
           ],
         ),
-        Text("ประเภทลิ้ง : ${type}",
+        Text("Type : ${type}",
             style: const TextStyle(
-                fontFamily: "Saraban", fontSize: 13, color: Color(0xFF7A7A7A)),
+                fontFamily: "Inter", fontSize: 13, color: Color(0xFF7A7A7A)),
             textAlign: TextAlign.center)
       ],
     );
@@ -360,53 +429,87 @@ class _ShowstaticState extends State<Showstatic> {
         size: 60,
       ),
     );
+  }
 
-    //   if (widget.info.state == 0) {
-    //     return Container(
-    //       width: 90,
-    //       height: 90,
-    //       decoration: BoxDecoration(
-    //         color: greenState,
-    //         shape: BoxShape.circle,
-    //       ),
-    //       child: const Icon(
-    //         Icons.priority_high,
-    //         color: Colors.white,
-    //         size: 60,
-    //       ),
-    //     );
-    //   }
-    //   if (widget.info.state == 1) {
-    //     return Container(
-    //       width: 90,
-    //       height: 90,
-    //       decoration: BoxDecoration(
-    //         color: yelloState,
-    //         shape: BoxShape.circle,
-    //       ),
-    //       child: const Icon(
-    //         Icons.priority_high,
-    //         color: Colors.white,
-    //         size: 60,
-    //       ),
-    //     );
-    //   }
-    //   if (widget.info.state == 2) {
-    //     return Container(
-    //       width: 90,
-    //       height: 90,
-    //       decoration: BoxDecoration(
-    //         color: redState,
-    //         shape: BoxShape.circle,
-    //       ),
-    //       child: const Icon(
-    //         Icons.priority_high,
-    //         color: Colors.white,
-    //         size: 60,
-    //       ),
-    //     );
-    //   }
-    //   return Container();
-    // }
+  Future<void> _showAlertDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+            backgroundColor: const Color(0xFFECECEC),
+            title: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                    padding: EdgeInsets.all(5),
+                    child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: Icon(Icons.close, size: 20))),
+                Padding(
+                    padding: EdgeInsets.only(top: 10),
+                    child: Center(
+                      child: Text('ยืนยันการลบบัญชีหรือไม่',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: Color(0xFF7A7A7A),
+                              fontSize: 16,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w400,
+                              height: 0.11)),
+                    )),
+              ],
+            ),
+            content: SizedBox(
+                height: 80,
+                width: 250,
+                child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Container(
+                          width: 115,
+                          height: 35,
+                          decoration: ShapeDecoration(
+                              color: const Color(0xFFBABABA),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8))),
+                          child: TextButton(
+                              style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero),
+                              child: const Text('Yes',
+                                  style: TextStyle(
+                                      color: Color(0xFF7A7A7A),
+                                      fontSize: 15,
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w400,
+                                      height: 0.12)),
+                              onPressed: () async {})),
+                      Container(
+                        width: 115,
+                        height: 35,
+                        decoration: ShapeDecoration(
+                            color: const Color(0xFFBABABA),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8))),
+                        child: TextButton(
+                            style:
+                                TextButton.styleFrom(padding: EdgeInsets.zero),
+                            child: const Text('No',
+                                style: TextStyle(
+                                  color: Color(0xFF7A7A7A),
+                                  fontSize: 15,
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w400,
+                                  height: 0.12,
+                                )),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            }),
+                      )
+                    ])),
+            actionsAlignment: MainAxisAlignment.center);
+      },
+    );
   }
 }

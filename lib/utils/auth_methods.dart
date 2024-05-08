@@ -33,10 +33,10 @@ class AuthMethods {
           'uid': user.uid,
           'profilePhoto': user.photoURL,
           'email': user.email,
-          'providers': user.providerData[0].providerId
+          'providers': user.providerData[0].providerId,
+          'filter' : []
         });
-        print(
-            "User signed in with UID: ${user.displayName!} && ${user.providerData}");
+        print("User signed in with UID: ${user.displayName!} && ${user.providerData}");
         res = true;
       }
     } catch (e) {

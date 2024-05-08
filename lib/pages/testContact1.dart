@@ -1,9 +1,9 @@
 import 'package:appbeebuzz/constant.dart';
-import 'package:appbeebuzz/pages/SMS_messages.dart';
 import 'package:appbeebuzz/pages/allSMS.dart';
 import 'package:appbeebuzz/style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:flutter_libphonenumber/flutter_libphonenumber.dart';
 
 class ContactsExample extends StatefulWidget {
   const ContactsExample({super.key});
@@ -23,6 +23,7 @@ class ContactsExampleState extends State<ContactsExample> {
   }
 
   Future _fetchData() async {
+    testNumberCode();
     var permission = await FlutterContacts.requestPermission(readonly: true);
     if (!permission) {
       setState(() => _permissionDenied = true);
@@ -30,21 +31,83 @@ class ContactsExampleState extends State<ContactsExample> {
       final contacts = await FlutterContacts.getContacts(withPhoto: true);
       // print(contacts[0].phones[0].number);
       setState(() => _contacts = contacts);
-      getName("0821308781");
     }
   }
 
-  Future getName(String sender) async {
-    for (final contact in _contacts!) {
-      final _contact = await FlutterContacts.getContact(contact.id);
-      if (_contact!.phones.isNotEmpty) {
-        // print(_contact.phones.first.number);
-        if (sender == _contact.phones.first.number) {
-          print(_contact.phones.first.number);
-          return;
-        } else {}
+  libPhoneNumber() {
+    final rawNumber = '+14145556666';
+    final formattedNumber = formatNumberSync(rawNumber);
+    print(formattedNumber);
+  }
+
+  String unifyPhoneNumber(String phoneNumber) {
+    // ลบอักขระที่ไม่ใช่ตัวเลข
+    String digitsOnly = phoneNumber.replaceAll(RegExp(r'\D'), '');
+    print(digitsOnly);
+
+    // หาความยาวของรหัสประเทศ
+    int countryCodeLength = 1;
+
+    // วนลูปเพื่อหาความยาวของรหัสประเทศ
+    for (int i = 1; i < digitsOnly.length; i++) {
+      String countryCode = digitsOnly.substring(0, i);
+      if (isValidCountryCode(countryCode)) {
+        countryCodeLength = i;
+        break;
       }
     }
+    print(countryCodeLength);
+
+    // นำหมายเลขโทรศัพท์มาตัดแบ่งออกเป็นรหัสประเทศและหมายเลขโทรศัพท์
+    String countryCode = digitsOnly.substring(0, countryCodeLength);
+    String phoneNumberDigits = digitsOnly.substring(countryCodeLength);
+
+    return phoneNumberDigits;
+  }
+
+// ตรวจสอบว่ารหัสประเทศเป็นไปตามรหัสประเทศที่มีอยู่จริงหรือไม่
+  bool isValidCountryCode(String countryCode) {
+    // ตรวจสอบจากรายการรหัสประเทศที่มีอยู่จริง
+    List<String> validCountryCodes = [
+      '1',
+      '44',
+      '33',
+      '49',
+      '81',
+      '66'
+    ]; // ตัวอย่างเท่านั้น
+    return validCountryCodes.contains(countryCode);
+  }
+
+  testNumber() async {
+    final countries = CountryManager().countries;
+    // countries.forEach((element) {
+    //   print(element.countryCode);
+    // });
+    final res = await getAllSupportedRegions();
+    print(res['IT']!.countryCode.toString());
+    print(res['US']!.countryCode.toString());
+    print(res['BR']!.countryCode.toString());
+
+    // String phoneNumber1 = '+14145556666';
+    // String phoneNumber2 = '+664145556666';
+
+    // String unifiedPhoneNumber1 = unifyPhoneNumber(phoneNumber1);
+    // String unifiedPhoneNumber2 = unifyPhoneNumber(phoneNumber2);
+
+    // print(unifiedPhoneNumber1);
+    // print(unifiedPhoneNumber2);
+    // print(unifiedPhoneNumber1 == unifiedPhoneNumber2); // true
+  }
+
+  testNumberCode() async {
+    final sortedCountries = CountryManager().countries
+      ..sort(
+        (final a, final b) => (a.countryName ?? '').compareTo(
+          b.countryName ?? '',
+        ),
+      );
+    print("จำนวน : ${sortedCountries.length}");
   }
 
   @override
@@ -63,6 +126,10 @@ class ContactsExampleState extends State<ContactsExample> {
       ),
       body: RefreshIndicator(
           onRefresh: _fetchData, child: Scaffold(body: _body())));
+
+  // Widget number() {
+  //   return Container();
+  // }
 
   Widget _body() {
     if (_permissionDenied) {

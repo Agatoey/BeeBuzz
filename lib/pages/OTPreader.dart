@@ -8,12 +8,11 @@ import 'package:flutter/material.dart';
 import 'package:pinput/pinput.dart';
 
 class OTPreader extends StatefulWidget {
-  const OTPreader({
-    super.key,
-    required this.verificationId,
-  });
+  const OTPreader(
+      {super.key, required this.verificationId, required this.phoneNumber});
 
   final String verificationId;
+  final String phoneNumber;
 
   @override
   State<OTPreader> createState() => _OTPreaderState();
@@ -98,19 +97,21 @@ class _OTPreaderState extends State<OTPreader> {
                         .collection('users')
                         .doc(value.user?.uid)
                         .set({
-                      'username': "userName",
+                      'username': widget.phoneNumber,
                       'uid': value.user?.uid,
-                      'profilePhoto':
-                          "https://cdn-icons-png.freepik.com/512/4945/4945750.png",
-                      'email': "email",
-                      'providers': "password"
+                      'profilePhoto': "https://cdn-icons-png.freepik.com/512/4945/4945750.png",
+                      'email': "-",
+                      'providers': "password",
+                      'filter' : []
                     });
-                    value.user?.updateDisplayName("userName");
-                    value.user?.verifyBeforeUpdateEmail("arjaree234@gmail.com");
+                    value.user?.updateDisplayName(widget.phoneNumber);
+                    value.user?.verifyBeforeUpdateEmail("-");
                     value.user!.updatePhotoURL(
                         'https://cdn-icons-png.freepik.com/512/4945/4945750.png');
-                    Navigator.pushReplacement(context,
-                        MaterialPageRoute(builder: (context) => Allsms()));
+                    Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const Allsms()));
                   });
                 } catch (ex) {
                   print("Error : ${ex.toString()}");

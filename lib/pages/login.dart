@@ -26,6 +26,8 @@ class _LoginPageState extends State<LoginPage> {
 
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey();
   final _formKey = GlobalKey<FormState>();
+  final _OTPformKey = GlobalKey<FormState>();
+  final _phoneKey = GlobalKey<FormState>();
 
   String errorString = "";
   TextEditingController passwordController = TextEditingController();
@@ -44,13 +46,6 @@ class _LoginPageState extends State<LoginPage> {
     passenable = true;
     super.initState();
   }
-
-  // void _showButtonPressDialog(BuildContext context, String provider) {
-  //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-  //       content: Text('$provider Button Pressed!'),
-  //       backgroundColor: Colors.black26,
-  //       duration: const Duration(milliseconds: 400)));
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -95,8 +90,6 @@ class _LoginPageState extends State<LoginPage> {
                         loginGoogle(),
                         divider(),
                         loginSelect(),
-                        isCheckbox(),
-                        buildButtonLogin()
                       ],
                     )),
               ),
@@ -123,8 +116,7 @@ class _LoginPageState extends State<LoginPage> {
           margin: const EdgeInsets.only(top: 11),
           alignment: Alignment.topLeft,
           child: const Image(
-              image: AssetImage('assets/images/logos_transparent.png'),
-              height: 40))
+              image: AssetImage('assets/images/Beebuzz-logo.png'), height: 30))
     ]);
   }
 
@@ -187,7 +179,9 @@ class _LoginPageState extends State<LoginPage> {
             obscure: false,
             type: "email",
             controller: emailController),
-        buildTextFieldPassword()
+        buildTextFieldPassword(),
+        isCheckbox(),
+        buildButtonLogin("email")
       ]),
     );
   }
@@ -243,38 +237,31 @@ class _LoginPageState extends State<LoginPage> {
   Widget phonenumber() {
     return Column(
       children: [
-        Container(
+        Form(
+          key: _formKey,
+          child: Container(
             margin: const EdgeInsets.only(top: 10),
-            child: TextFormField(
-                controller: phoneNumberController,
-                decoration: InputDecoration(
-                    contentPadding: EdgeInsets.zero,
-                    border: OutlineInputBorder(
-                        borderSide: BorderSide.none,
-                        borderRadius: BorderRadius.circular(8.0)),
-                    hintText: "Phone Number",
-                    filled: true,
-                    fillColor: const Color(0xFFF7F7F9),
-                    // suffixIcon: IconButton(
-                    //     onPressed: () {},
-                    //     icon: const Icon(Icons.send, color: Colors.black45)),
-                    prefixIcon: const Icon(Icons.phone_android,
-                        color: Colors.black45)))),
+            child: InputFormField(
+                textHint: "Phone Number",
+                obscure: false,
+                type: "phone",
+                controller: phoneNumberController),
+          ),
+        ),
         buildButtonSendOTP(),
-        Container(
+        Form(
+          key: _OTPformKey,
+          child: Container(
             margin: const EdgeInsets.only(top: 10),
-            child: TextFormField(
-                controller: otpController,
-                decoration: InputDecoration(
-                    contentPadding: EdgeInsets.zero,
-                    border: OutlineInputBorder(
-                        borderSide: BorderSide.none,
-                        borderRadius: BorderRadius.circular(8.0)),
-                    hintText: "OTP Code",
-                    filled: true,
-                    fillColor: const Color(0xFFF7F7F9),
-                    prefixIcon: const Icon(Icons.textsms_outlined,
-                        color: Colors.black45))))
+            child: InputFormField(
+                textHint: "OTP Code",
+                obscure: false,
+                type: "otp",
+                controller: otpController),
+          ),
+        ),
+        isCheckbox(),
+        buildButtonLogin("phone")
       ],
     );
   }
@@ -285,38 +272,6 @@ class _LoginPageState extends State<LoginPage> {
       child: const Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          // Row(
-          //   children: [
-          //     Transform.scale(
-          //         scale: 1,
-          //         child: Container(
-          //             height: 15,
-          //             width: 15,
-          //             decoration: ShapeDecoration(
-          //                 color: const Color(0xFFD9D9D9),
-          //                 shape: RoundedRectangleBorder(
-          //                     borderRadius: BorderRadius.circular(5))),
-          //             child: Checkbox(
-          //                 value: isChecked,
-          //                 side: const BorderSide(
-          //                     width: 1, color: Color(0xFFD9D9D9)),
-          //                 shape: RoundedRectangleBorder(
-          //                     borderRadius: BorderRadius.circular(5)),
-          //                 activeColor: const Color(0xFFD9D9D9),
-          //                 checkColor: Colors.white,
-          //                 onChanged: (value) => setState(() {
-          //                       isChecked = value!;
-          //                     })))),
-          //     const SizedBox(width: 5),
-          //     const Text("Remember me",
-          //         style: TextStyle(
-          //             color: Color(0xFF2E2E2E),
-          //             fontSize: 10,
-          //             fontFamily: 'Poppins',
-          //             fontWeight: FontWeight.w400,
-          //             height: 0.15)),
-          //   ],
-          // ),
           Text("Forgot Password?",
               style: TextStyle(
                   color: Color(0xFFDB5757),
@@ -330,21 +285,18 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget register() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text('Don’t have an account? ',
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 12,
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w400,
-              height: 0.17,
-            )),
-        TextButton(
+    return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+      const Text('Don’t have an account? ',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 12,
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w400,
+            height: 0.17,
+          )),
+      TextButton(
           style: TextButton.styleFrom(
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap),
           child: const Text('Register',
               style: TextStyle(
                   color: Color(0xFFFCB605),
@@ -355,10 +307,8 @@ class _LoginPageState extends State<LoginPage> {
           onPressed: () {
             Navigator.pushReplacement(context,
                 MaterialPageRoute(builder: (context) => const Register()));
-          },
-        )
-      ],
-    );
+          })
+    ]);
   }
 
   Widget loginSelect() {
@@ -428,12 +378,29 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
         onPressed: () async {
-          _formKey.currentState?.validate();
+          _phoneKey.currentState?.validate();
           String phoneNumber = phoneNumberController.text.trim();
           if (phoneNumber.isNotEmpty) {
             try {
+              if (phoneNumber.startsWith('0') && phoneNumber.length == 10) {
+                print(phoneNumber.length);
+                phoneNumber = '+66${phoneNumber.substring(1)}';
+              } else if (phoneNumber.startsWith('+66')) {
+                if (phoneNumber.startsWith('+660')) {
+                  if (phoneNumber.length == 13) {
+                    print(phoneNumber.length);
+                    phoneNumber = '+66${phoneNumber.substring(4)}';
+                  } else {
+                    errrorText("รูปแบบไม่ถูกต้อง", Colors.red);
+                  }
+                } else if (phoneNumber.length == 12) {
+                  print(phoneNumber.length);
+                  phoneNumber = phoneNumber;
+                } else {
+                  errrorText("รูปแบบไม่ถูกต้อง", Colors.red);
+                }
+              }
               await _auth.verifyPhoneNumber(
-                // phoneNumber: "+66821308781",
                 phoneNumber: phoneNumber.toString(),
                 timeout: const Duration(seconds: 1),
                 verificationCompleted: (PhoneAuthCredential credential) async {
@@ -442,12 +409,14 @@ class _LoginPageState extends State<LoginPage> {
                 verificationFailed: (FirebaseAuthException ex) {
                   throw Exception(ex.message);
                 },
-                codeAutoRetrievalTimeout: (String verificationId) {setState(() {
-                  _verificationId = verificationId;
-                });},
+                codeAutoRetrievalTimeout: (String verificationId) {
+                  setState(() {
+                    _verificationId = verificationId;
+                  });
+                },
                 codeSent: (String verificationId, int? resendtoken) {},
               );
-              errrorText("send OTP : 123456", Colors.green);
+              // errrorText("send OTP : 123456", Colors.green);
             } on FirebaseAuthException catch (e) {
               errrorText(e.message.toString(), Colors.red);
             }
@@ -457,7 +426,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget buildButtonLogin() {
+  Widget buildButtonLogin(String type) {
     return Container(
       margin: const EdgeInsets.only(top: 10),
       constraints: const BoxConstraints.expand(height: 40),
@@ -480,6 +449,9 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
         onPressed: () async {
+          if (type == "phone") {
+            _OTPformKey.currentState?.validate();
+          }
           _formKey.currentState?.validate();
           await signIn();
         },
@@ -499,9 +471,8 @@ class _LoginPageState extends State<LoginPage> {
         print(
             "signed in ${user.user?.email} && providers : ${user.user?.providerData}");
       }).catchError((error) {
-        var errrorText = "Login ไม่สำเร็จ";
-        print(errrorText);
-        print(error.message);
+        var errrorText = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
+        // print(error.message);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(errrorText, style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.red,
@@ -518,9 +489,15 @@ class _LoginPageState extends State<LoginPage> {
 
         final User? user = (await _auth.signInWithCredential(credential)).user;
 
-        errrorText("Successfully signed in UID: ${user?.displayName}",Colors.green);
+        // errrorText( "Successfully signed in UID: ${user?.displayName}", Colors.green);
       } catch (e) {
-        errrorText("Failed to sign in: $e",Colors.red);
+        if (e.toString().contains(
+            "The verification code from SMS/TOTP is invalid. Please check and enter the correct verification code again")) {
+          errrorText(
+              "The verification code from SMS/TOTP is invalid. Please check and enter the correct verification code again",
+              Colors.red);
+        }
+        // errrorText("Failed to sign in: $e", Colors.red);
       }
     }
   }

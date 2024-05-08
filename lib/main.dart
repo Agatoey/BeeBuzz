@@ -56,7 +56,6 @@ class RunMyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      // theme: ThemeData(primarySwatch: Colors.green),
       home: Main(),
     );
   }
@@ -88,7 +87,7 @@ class _MainState extends State<Main> {
         body: const Center(
             child: Center(
                 child: Image(
-                    image: AssetImage('assets/images/logos_transparent.png'),
+                    image: AssetImage('assets/images/Beebuzz-logos.png'),
                     height: 68))));
   }
 }

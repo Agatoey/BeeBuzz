@@ -4,10 +4,10 @@ import 'package:appbeebuzz/pages/accPage.dart';
 import 'package:appbeebuzz/pages/login.dart';
 import 'package:appbeebuzz/pages/filterPage.dart';
 import 'package:appbeebuzz/pages/showmsg.dart';
-import 'package:appbeebuzz/pages/testContact1.dart';
 import 'package:appbeebuzz/service/getAPI.dart';
 import 'package:appbeebuzz/style.dart';
 import 'package:appbeebuzz/utils/auth_methods.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:appbeebuzz/constant.dart';
@@ -19,6 +19,7 @@ import 'package:unicons/unicons.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 import 'package:flutter_advanced_segment/flutter_advanced_segment.dart';
+import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
 
 class Allsms extends StatefulWidget {
   const Allsms({super.key});
@@ -37,18 +38,24 @@ class _AllsmsState extends State<Allsms> {
   List<SmsMessage> _messages = [];
   List<MessageModel> messageModels = [];
 
-  bool _permissionDenied = false;
-
   List filterText = ["free", "click"];
 
   bool isPress1 = true;
   final _selectedSegment = ValueNotifier('all');
+
+  late String model;
+
+  List<dynamic>? filterTexts;
+  final user = FirebaseAuth.instance.currentUser;
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  bool state = false;
 
   @override
   void initState() {
     isPress1 = true;
     roadSMSTest();
     getJson();
+    model = "";
     super.initState();
   }
 
@@ -57,22 +64,133 @@ class _AllsmsState extends State<Allsms> {
     super.dispose();
   }
 
+  getListFilter() async {
+    if (user != null) {
+      filterTexts = [];
+      CollectionReference users =
+          FirebaseFirestore.instance.collection('users');
+      final snapshot = await users.doc(user!.uid).get();
+      final data = snapshot.data() as Map<String, dynamic>;
+      setState(() {
+        filterTexts = data['filter'];
+      });
+
+      // debugPrint(filterTexts.toString());
+    }
+  }
+
+  final int _sentenceLen = 80;
+
+  final String start = '<START>';
+  final String pad = '<PAD>';
+  final String unk = '<UNKNOWN>';
+
+  late Map<String, int> _dict;
+
+  // TensorFlow Lite Interpreter object
+  late tfl.Interpreter _interpreter;
+
+  // Classifier() {
+  //   // Load model when the classifier is initialized.
+  //   // _loadModel(_modelFile);
+  //   // _loadDictionary(_vocabFile);
+  // }
+
+  Future<bool> _loadModel(String modelFile) async {
+    // Creating the interpreter using Interpreter.fromAsset
+    // print('Interpreter loaded ${_interpreter.isAllocated}');
+    _interpreter = await tfl.Interpreter.fromAsset(modelFile);
+    print('Interpreter loaded successfully ${_interpreter.isAllocated}');
+    return _interpreter.isAllocated;
+  }
+
+  Future<bool> _loadDictionary(String vocabFile) async {
+    final vocab = await rootBundle.loadString('assets/$vocabFile');
+    var dict = <String, int>{};
+    final vocabList = vocab.split('\n');
+    for (var i = 0; i < vocabList.length; i++) {
+      var entry = vocabList[i].trim().split(' ');
+      dict[entry[0]] = int.parse(entry[1]);
+    }
+    _dict = dict;
+    print('Dictionary loaded successfully');
+    return _dict.isNotEmpty;
+  }
+
+  Future<double?> classify(
+      String rawText, String modelFile, String vocabFile) async {
+    bool res = await _loadModel(modelFile);
+    if (res == true) {
+      bool res2 = await _loadDictionary(vocabFile);
+      if (res2 == true) {
+        List<List<double>> input = tokenizeInputText(rawText);
+        var output = List<double>.filled(1, 0).reshape([1, 1]);
+        _interpreter.run(input, output);
+
+        return output[0][0];
+      }
+    }
+    return null;
+  }
+
+  List<List<double>> tokenizeInputText(String text) {
+    // Whitespace tokenization
+    final toks = text.split(' ');
+
+    // Create a list of length==_sentenceLen filled with the value <pad>
+    var vec = List<double>.filled(_sentenceLen, _dict[pad]!.toDouble());
+
+    var index = 0;
+    if (_dict.containsKey(start)) {
+      vec[index++] = _dict[start]!.toDouble();
+    }
+
+    // For each word in sentence find corresponding index in dict
+    for (var tok in toks) {
+      if (index > _sentenceLen) {
+        break;
+      }
+      vec[index++] = _dict.containsKey(tok)
+          ? _dict[tok]!.toDouble()
+          : _dict[unk]!.toDouble();
+    }
+
+    // returning List<List<double>> as our interpreter input tensor expects the shape, [1,256]
+    return [vec];
+  }
+
   Future roadSMSTest() async {
     messagesBySender = {};
     _messages = [];
     var permission = await Permission.sms.request();
     if (!permission.isGranted) {
-      setState(() => _permissionDenied = true);
     } else {
+      await Permission.contacts.request();
       final messages = await _query.querySms(
         kinds: [
           SmsQueryKind.inbox,
-          // SmsQueryKind.sent,
         ],
       );
       setState(() {
         _messages = messages;
       });
+
+      await getListFilter();
+
+      debugPrint("Before Filter : ${_messages.length}");
+      if (filterTexts!.isNotEmpty) {
+        _messages.removeWhere((message) {
+          for (var textFilter in filterTexts!) {
+            if (message.body!.contains(textFilter)) {
+              return true;
+            }
+          }
+          return false;
+        });
+      } else if (filterTexts == null) {
+        return _messages;
+      }
+      debugPrint("After Fillter : ${_messages.length}");
 
       for (var message in _messages) {
         if (!messagesBySender.containsKey(message.sender)) {
@@ -82,29 +200,52 @@ class _AllsmsState extends State<Allsms> {
           messagesBySender[message.sender]?.add(message);
         });
       }
-      // print(messagesBySender.keys);
-      // messagesBySender.forEach((key, value) {
-      //   print(key.toString());
-      // });
     }
   }
 
-  // select_model() async {
+  Future<String> selectModels(String sms) async {
+    model = (await Data().selectmodel(sms))!;
+    return model.toString();
+  }
 
-  // }
+  String? type;
+
+  getURLType(String linkbody) async {
+    if (linkbody.isNotEmpty) {
+      var res = await Data().xSendUrlScan(linkbody.toString());
+      if (res == null) {
+        setState(() {
+          type = "Unkown";
+        });
+      }
+
+      type = res!.attributes["categories"]["Webroot"];
+      if (type == null) {
+        setState(() {
+          type = res.attributes["categories"]["Forcepoint ThreatSeeker"];
+          // state = true;
+        });
+      } else if (res!.attributes["categories"]["Forcepoint ThreatSeeker"] ==
+          null) {
+        setState(() {
+          type = "Unkown";
+          // state = true;
+        });
+      }
+    }
+  }
 
   getJson() async {
+    late String match;
     messageModels = [];
-    late var contacts;
+    var contacts;
     for (var entry in messagesBySender.entries) {
       var key = entry.key;
       var value = entry.value;
-      late String match;
       var matches;
       RegExp regExp = RegExp(
           r'\b(?:https?://[a-zA-Z0-9\:/.?=&#%]+|[a-zA-Z0-9\:/.?=&#%]+\.[a-zA-Z0-9\:/.?=&#%]+)\b');
-      List<Messages> messages = [];
-      await Permission.contacts.request();
+
       contacts = await ContactsService.getContactsForPhone(key);
       if (contacts.isNotEmpty) {
         for (var msg in value) {
@@ -114,17 +255,32 @@ class _AllsmsState extends State<Allsms> {
             match = m[0]!;
           }
 
-          var name = messageModels.indexWhere(
-              (model) => model.name.startsWith(contacts.first.displayName));
-          if (name != -1) {
-            messageModels[name].messages.add(Messages(
+          // await getURLType(match);
+          // print(type);
+          var prediction;
+          model = await selectModels(msg.body);
+          if (model == "English") {
+            prediction = await classify(
+                msg.body,
+                "assets/models/modelnew.tflite",
+                'models/text_classification_vocab.txt');
+            print("prediction : $prediction");
+          }
+
+          var samename = messageModels
+              .indexWhere((model) => model.name == contacts.first.displayName);
+          if (samename != -1) {
+            messageModels[samename].messages.add(Messages(
                 body: msg.body,
                 date: DateTime.parse(msg.date.toString()),
                 time: "${msg.date!.hour}:${msg.date!.minute}",
                 score: 0,
+                scoresms: 0,
                 state: 0,
-                link: match,
-                linkState: ""));
+                linkbody: match,
+                linktype: "type",
+                scorelink: 0,
+                model: model));
           } else {
             messageModels.add(MessageModel(
                 name: contacts.first.displayName,
@@ -135,9 +291,12 @@ class _AllsmsState extends State<Allsms> {
                       date: DateTime.parse(msg.date.toString()),
                       time: "${msg.date!.hour}:${msg.date!.minute}",
                       score: 0,
+                      scoresms: 0,
                       state: 0,
-                      link: match,
-                      linkState: "")
+                      linkbody: match,
+                      linktype: "type",
+                      scorelink: 0,
+                      model: model)
                 ]));
           }
         }
@@ -150,18 +309,54 @@ class _AllsmsState extends State<Allsms> {
           for (final m in matches) {
             match = m[0]!;
           }
+          // await getURLType(match);
+          // print(type);
+          var prediction;
+          model = await selectModels(msg.body);
+          print(model);
+          // if (msg.body.isEmpty && match.isEmpty) {}
+          if (model == "English") {
+            prediction = await classify(
+                msg.body,
+                "assets/models/nlp_rnn_w2v.tflite",
+                'models/nlp_w2v_text_classification_vocab.txt');
+          } else if (model == "Thai") {
+            prediction = await classify(
+                msg.body,
+                "assets/models/modelnew.tflite",
+                'models/text_classification_vocab.txt');
+          }
 
-          messages.add(Messages(
-              body: msg.body,
-              date: DateTime.parse(msg.date.toString()),
-              time: "${msg.date!.hour}:${msg.date!.minute}",
-              score: 60,
-              state: 1,
-              link: match,
-              linkState: ""));
+          print("prediction : $prediction");
+          var samename = messageModels.indexWhere((model) => model.name == key);
+          if (samename != -1) {
+            messageModels[samename].messages.add(Messages(
+                body: msg.body,
+                date: DateTime.parse(msg.date.toString()),
+                time: "${msg.date!.hour}:${msg.date!.minute}",
+                score: 60,
+                scoresms: prediction,
+                state: 1,
+                linkbody: match,
+                linktype: "type",
+                scorelink: 0,
+                model: model));
+          } else {
+            messageModels.add(MessageModel(name: key, photo: [], messages: [
+              Messages(
+                  body: msg.body,
+                  date: DateTime.parse(msg.date.toString()),
+                  time: "${msg.date!.hour}:${msg.date!.minute}",
+                  score: 60,
+                  scoresms: prediction,
+                  state: 1,
+                  linkbody: match,
+                  linktype: "type",
+                  scorelink: 0,
+                  model: model)
+            ]));
+          }
         }
-        messageModels
-            .add(MessageModel(name: key, photo: [], messages: messages));
       }
     }
     // Print the result
@@ -226,11 +421,6 @@ class _AllsmsState extends State<Allsms> {
                       onRefresh: roadSMSTest,
                       child: Container(
                         height: 550,
-                        // constraints: BoxConstraints(
-                        //   minHeight: 550,
-                        //   // minHeight: MediaQuery.of(context).size.height / 2,
-                        // ),
-                        // padding: EdgeInsets.only(bottom: 20),
                         margin: const EdgeInsets.only(top: 20, bottom: 20),
                         decoration: ShapeDecoration(
                             color: Colors.white.withOpacity(0.7),
@@ -261,20 +451,37 @@ class _AllsmsState extends State<Allsms> {
 
   Widget allSMS(List<SmsMessage> messages) {
     if (_messages.isEmpty) {
-      return Scaffold(
-          backgroundColor: bgYellow,
-          body: const Center(child: CircularProgressIndicator()));
+      return Stack(
+        children: [
+          ListView(),
+          const Center(
+            child: Text("No message", style: TextStyle(fontFamily: "Kanit")),
+          )
+        ],
+      );
     }
     return FutureBuilder(
       future: getJson(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Container(
-            alignment: Alignment.center,
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation(mainScreen),
-            ),
-          );
+              alignment: Alignment.center,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    "loading...",
+                    style: TextStyle(fontFamily: "Kanit", fontSize: 15),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation(mainScreen),
+                    ),
+                  ),
+                ],
+              ));
         }
         return ListView.builder(
           shrinkWrap: true,
@@ -350,20 +557,37 @@ class _AllsmsState extends State<Allsms> {
 
   Widget fraudSMS(List<SmsMessage> messages) {
     if (_messages.isEmpty) {
-      return Scaffold(
-          backgroundColor: bgYellow,
-          body: const Center(child: CircularProgressIndicator()));
+      return Stack(
+        children: [
+          ListView(),
+          const Center(
+            child: Text("No message", style: TextStyle(fontFamily: "Kanit")),
+          )
+        ],
+      );
     }
     return FutureBuilder(
       future: getJson(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Container(
-            alignment: Alignment.center,
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation(mainScreen),
-            ),
-          );
+              alignment: Alignment.center,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    "loading...",
+                    style: TextStyle(fontFamily: "Kanit"),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation(mainScreen),
+                    ),
+                  ),
+                ],
+              ));
         }
         return ListView.builder(
           shrinkWrap: true,
@@ -450,7 +674,7 @@ class _AllsmsState extends State<Allsms> {
         children: [
           const Padding(
             padding: EdgeInsets.all(16.0),
-            child: Text('Main',
+            child: Text('Manu',
                 style: TextStyle(
                     fontWeight: FontWeight.w500,
                     color: Color(0xFF757575),
@@ -465,16 +689,24 @@ class _AllsmsState extends State<Allsms> {
                 Navigator.pushReplacement(context,
                     MaterialPageRoute(builder: (context) => const Allsms()));
               }),
-          ListTile(
-              leading:
-                  FaIcon(FontAwesomeIcons.envelope, size: 20, color: grayBar),
-              title: Text('Contacts', style: textBar),
-              onTap: () {
-                Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const ContactsExample()));
-              }),
+          // ListTile(
+          //     leading:
+          //         FaIcon(FontAwesomeIcons.envelope, size: 20, color: grayBar),
+          //     title: Text('Contacts', style: textBar),
+          //     onTap: () {
+          //       Navigator.pushReplacement(
+          //           context,
+          //           MaterialPageRoute(
+          //               builder: (context) => const ContactsExample()));
+          //     }),
+          // ListTile(
+          //     leading:
+          //         FaIcon(FontAwesomeIcons.envelope, size: 20, color: grayBar),
+          //     title: Text('Test', style: textBar),
+          //     onTap: () {
+          //       Navigator.pushReplacement(context,
+          //           MaterialPageRoute(builder: (context) => const MyApp()));
+          //     }),
           ListTile(
             leading: FaIcon(UniconsLine.user, size: 20, color: grayBar),
             title: Text('Account', style: textBar),
@@ -503,17 +735,14 @@ class _AllsmsState extends State<Allsms> {
                       fontFamily: 'Inter'))),
           ListTile(
             leading: Icon(FeatherIcons.settings, size: 20, color: grayBar),
-            title: Text(
-              'Settings',
-              style: textBar,
-            ),
+            title: Text('Settings', style: textBar),
             onTap: () {},
           ),
           Container(height: 2, color: const Color(0xFFCFCFCF)),
-          ListTile(
-              leading: Icon(FeatherIcons.helpCircle, size: 20, color: grayBar),
-              title: Text('Help', style: textBar),
-              onTap: () {}),
+          // ListTile(
+          //     leading: Icon(FeatherIcons.helpCircle, size: 20, color: grayBar),
+          //     title: Text('Help', style: textBar),
+          //     onTap: () {}),
           ListTile(
             leading: const Icon(FeatherIcons.logOut,
                 size: 20, color: Color(0xFFD55F5A)),
