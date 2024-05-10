@@ -7,7 +7,7 @@ import 'package:json_pretty/json_pretty.dart';
 
 class Data {
   final String xApiToken =
-      '0d4b50c2d7d24ad44032b1eeea0fa7eda3c33b616134aadf99183e4a470b55e6';
+      '0b8b7ca6e08ba89b1b71b13634fdb6705613425eb9f1f35ebcfb6d76cc17f7e1';
   final String linkScanUrl = 'https://www.virustotal.com/api/v3/urls';
   final String linkScanUrlAnalysis =
       'https://www.virustotal.com/api/v3/analyses/';
@@ -32,7 +32,7 @@ class Data {
 
         if (responseTwo.statusCode == 200) {
           var meta = json.decode(responseTwo.body);
-          print("Data = ${meta["meta"]["url_info"]["id"]}");
+          // print("Data = ${meta["meta"]["url_info"]["id"]}");
 
           // print(responseTwo.body);
 
@@ -66,7 +66,7 @@ class Data {
     return null;
   }
 
-  Future<String?> selectmodel(String sms) async {
+  Future<Map<String, dynamic>?> selectmodel(String sms) async {
     try {
       var headers = {'Content-Type': 'application/json'};
       var request = http.Request(
@@ -80,9 +80,11 @@ class Data {
 
       if (response.statusCode == 200) {
         Map<String, dynamic> json = jsonDecode(await response.stream.bytesToString());
-        var model = json["model"].toString();
-        // print(model + ": ${sms}");
-        return model;
+        // JsonEncoder encoder = const JsonEncoder.withIndent('  ');
+        // String prettyprint = encoder.convert(json);
+        // var model = json["model"].toString();
+        // print(prettyprint);
+        return json;
       } else {
         print(response.reasonPhrase);
       }

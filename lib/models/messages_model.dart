@@ -31,13 +31,13 @@ class Messages {
   String body;
   DateTime date;
   String time;
-  int score;
+  double score;
   double scoresms;
   int state;
   String linkbody;
   String? linktype;
   double scorelink;
-  String model;
+  String? model;
 
   Map<String, dynamic> toJson() => {
         'body': body,

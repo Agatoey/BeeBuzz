@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:ffi';
 import 'package:appbeebuzz/models/messages_model.dart';
 import 'package:appbeebuzz/pages/accPage.dart';
 import 'package:appbeebuzz/pages/login.dart';
@@ -14,6 +16,7 @@ import 'package:appbeebuzz/constant.dart';
 import 'package:contacts_service/contacts_service.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
+import 'package:json_pretty/json_pretty.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:unicons/unicons.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -30,7 +33,6 @@ class Allsms extends StatefulWidget {
 
 class _AllsmsState extends State<Allsms> {
   final GlobalKey<ScaffoldState> _scaffoldkey = GlobalKey();
-  late String signoutWith;
 
   final SmsQuery _query = SmsQuery();
 
@@ -38,17 +40,20 @@ class _AllsmsState extends State<Allsms> {
   List<SmsMessage> _messages = [];
   List<MessageModel> messageModels = [];
 
-  List filterText = ["free", "click"];
-
   bool isPress1 = true;
   final _selectedSegment = ValueNotifier('all');
 
-  late String model;
+  late String? model;
 
   List<dynamic>? filterTexts;
   final user = FirebaseAuth.instance.currentUser;
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  bool state = false;
+
+  final int _sentenceLen = 79;
+  final String start = '<START>';
+  final String pad = '<PAD>';
+  final String unk = '<UNKNOWN>';
+  late Map<String, int> _dict;
 
   @override
   void initState() {
@@ -74,38 +79,22 @@ class _AllsmsState extends State<Allsms> {
       setState(() {
         filterTexts = data['filter'];
       });
-
-      // debugPrint(filterTexts.toString());
     }
   }
-
-  final int _sentenceLen = 80;
-
-  final String start = '<START>';
-  final String pad = '<PAD>';
-  final String unk = '<UNKNOWN>';
-
-  late Map<String, int> _dict;
 
   // TensorFlow Lite Interpreter object
   late tfl.Interpreter _interpreter;
 
-  // Classifier() {
-  //   // Load model when the classifier is initialized.
-  //   // _loadModel(_modelFile);
-  //   // _loadDictionary(_vocabFile);
-  // }
-
   Future<bool> _loadModel(String modelFile) async {
     // Creating the interpreter using Interpreter.fromAsset
     // print('Interpreter loaded ${_interpreter.isAllocated}');
-    _interpreter = await tfl.Interpreter.fromAsset(modelFile);
-    print('Interpreter loaded successfully ${_interpreter.isAllocated}');
+    _interpreter = await tfl.Interpreter.fromAsset('assets/models/$modelFile');
+    // print('Interpreter loaded successfully ${_interpreter.isAllocated}');
     return _interpreter.isAllocated;
   }
 
   Future<bool> _loadDictionary(String vocabFile) async {
-    final vocab = await rootBundle.loadString('assets/$vocabFile');
+    final vocab = await rootBundle.loadString('assets/models/$vocabFile');
     var dict = <String, int>{};
     final vocabList = vocab.split('\n');
     for (var i = 0; i < vocabList.length; i++) {
@@ -113,7 +102,7 @@ class _AllsmsState extends State<Allsms> {
       dict[entry[0]] = int.parse(entry[1]);
     }
     _dict = dict;
-    print('Dictionary loaded successfully');
+    // print('Dictionary loaded successfully');
     return _dict.isNotEmpty;
   }
 
@@ -126,7 +115,7 @@ class _AllsmsState extends State<Allsms> {
         List<List<double>> input = tokenizeInputText(rawText);
         var output = List<double>.filled(1, 0).reshape([1, 1]);
         _interpreter.run(input, output);
-
+        // print(input);
         return output[0][0];
       }
     }
@@ -135,7 +124,12 @@ class _AllsmsState extends State<Allsms> {
 
   List<List<double>> tokenizeInputText(String text) {
     // Whitespace tokenization
+    // print(text);
     final toks = text.split(' ');
+
+    // final toks = [text];
+
+    debugPrint("toks >>>>> $toks");
 
     // Create a list of length==_sentenceLen filled with the value <pad>
     var vec = List<double>.filled(_sentenceLen, _dict[pad]!.toDouble());
@@ -156,6 +150,7 @@ class _AllsmsState extends State<Allsms> {
     }
 
     // returning List<List<double>> as our interpreter input tensor expects the shape, [1,256]
+    // print(vec);
     return [vec];
   }
 
@@ -177,7 +172,7 @@ class _AllsmsState extends State<Allsms> {
 
       await getListFilter();
 
-      debugPrint("Before Filter : ${_messages.length}");
+      // debugPrint("Before Filter : ${_messages.length}");
       if (filterTexts!.isNotEmpty) {
         _messages.removeWhere((message) {
           for (var textFilter in filterTexts!) {
@@ -190,7 +185,7 @@ class _AllsmsState extends State<Allsms> {
       } else if (filterTexts == null) {
         return _messages;
       }
-      debugPrint("After Fillter : ${_messages.length}");
+      // debugPrint("After Fillter : ${_messages.length}");
 
       for (var message in _messages) {
         if (!messagesBySender.containsKey(message.sender)) {
@@ -203,40 +198,112 @@ class _AllsmsState extends State<Allsms> {
     }
   }
 
-  Future<String> selectModels(String sms) async {
-    model = (await Data().selectmodel(sms))!;
-    return model.toString();
+  late String tokenize;
+
+  Future<String?> selectModels(String sms) async {
+    var res = await Data().selectmodel(sms);
+    model = res!["model"].toString();
+    tokenize = res["sms"].toString();
+    print(tokenize);
+    return model;
   }
 
   String? type;
+  late double linkscore;
 
   getURLType(String linkbody) async {
-    if (linkbody.isNotEmpty) {
-      var res = await Data().xSendUrlScan(linkbody.toString());
-      if (res == null) {
-        setState(() {
-          type = "Unkown";
-        });
-      }
+    type = "";
+    var res = await Data().xSendUrlScan(linkbody);
 
-      type = res!.attributes["categories"]["Webroot"];
-      if (type == null) {
-        setState(() {
-          type = res.attributes["categories"]["Forcepoint ThreatSeeker"];
-          // state = true;
-        });
-      } else if (res!.attributes["categories"]["Forcepoint ThreatSeeker"] ==
-          null) {
-        setState(() {
-          type = "Unkown";
-          // state = true;
-        });
+    if (res?.attributes["last_analysis_stats"] != null) {
+      Map<String, dynamic> x;
+
+      x = res?.attributes["last_analysis_stats"];
+      print("last_analysis_stats : $x");
+
+      int maxMalicious = x['malicious'] ?? 0;
+      int maxSuspicious = x['suspicious'] ?? 0;
+
+      x.forEach((key, value) {
+        if (key == 'malicious' && value > maxMalicious) {
+          maxMalicious = value;
+        }
+        if (key == 'suspicious' && value > maxSuspicious) {
+          maxSuspicious = value;
+        }
+      });
+
+      if (maxMalicious > maxSuspicious) {
+        linkscore = 1;
+      } else if (maxMalicious < maxSuspicious) {
+        linkscore = 0.5;
+      } else if (maxMalicious == maxSuspicious) {
+        linkscore = 1;
+        if (maxMalicious == 0 && maxSuspicious == 0) {
+          linkscore = 0;
+        }
       }
+    } else if (res?.attributes["last_analysis_stats"] == null) {
+      linkscore = 0;
     }
+
+    type = res?.attributes["categories"]["Webroot"];
+    type ??= res?.attributes["categories"]["Forcepoint ThreatSeeker"];
+    type ??= "Unkown";
   }
 
+  double? predic;
+  Future<double> prediction(String text, String link, String msg) async {
+    predic = 0;
+    double score = 0;
+    // linkscore = 1; //test
+    // print("linkscore : $linkscore");
+    if (text == "Text" && link.isNotEmpty) {
+      score = linkscore * 100;
+      predic = 0;
+      model = "link";
+      print("Predic 1: $text || $link || $model || $linkscore");
+    } else if (text.toString().isNotEmpty && link.isEmpty) {
+      model = await selectModels(msg);
+      if (model == "english") {
+        predic = await classify(
+            tokenize, "nlp_lstm_w2v.tflite", 'nlp_w2v_text_classification_vocab.txt');
+        score = (predic! * 100);
+        print("Predic 2: $text || $link || $model || $linkscore");
+      }
+      if (model == "thai") {
+        predic = await classify(
+            tokenize, "nlp_lstm_w2v.tflite", 'nlp_w2v_text_classification_vocab.txt');
+        score = predic! * 100;
+        print("Predic 3: $text || $link || $model || $linkscore");
+      }
+    } else if (text.toString().isNotEmpty && link.isNotEmpty) {
+      model = await selectModels(msg);
+      if (model == "english") {
+        predic = await classify(
+            tokenize, "nlp_lstm_w2v.tflite", 'nlp_w2v_text_classification_vocab.txt');
+        score = (predic! * 50) + (linkscore * 50);
+        print("Predic 4: $text || $link || $model || $linkscore");
+      }
+      if (model == "thai") {
+        predic = await classify(
+            tokenize, "nlp_lstm_w2v.tflite", 'nlp_w2v_text_classification_vocab.txt');
+        score = (predic! * 50) + (linkscore * 50);
+        print("Predic 5: $text || $link || $model || $linkscore");
+      }
+    }
+    print("Total predic: $predic");
+    return score;
+  }
+
+  // bool _isLink(String input) {
+  //   final matcher = RegExp(
+  //       r"(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)");
+  //   return matcher.hasMatch(input);
+  // }
+
   getJson() async {
-    late String match;
+    late String link;
     messageModels = [];
     var contacts;
     for (var entry in messagesBySender.entries) {
@@ -244,28 +311,55 @@ class _AllsmsState extends State<Allsms> {
       var value = entry.value;
       var matches;
       RegExp regExp = RegExp(
-          r'\b(?:https?://[a-zA-Z0-9\:/.?=&#%]+|[a-zA-Z0-9\:/.?=&#%]+\.[a-zA-Z0-9\:/.?=&#%]+)\b');
+          r"(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)");
 
       contacts = await ContactsService.getContactsForPhone(key);
       if (contacts.isNotEmpty) {
         for (var msg in value) {
-          match = "";
+          link = "";
+          String text = "";
+
+          // print("Check: ${_isLink(msg.body).toString()}");
+
           matches = regExp.allMatches(msg.body);
           for (final m in matches) {
-            match = m[0]!;
+            link = m[0];
+            text = msg.body.replaceFirst(link, '');
           }
 
-          // await getURLType(match);
-          // print(type);
-          var prediction;
-          model = await selectModels(msg.body);
-          if (model == "English") {
-            prediction = await classify(
-                msg.body,
-                "assets/models/modelnew.tflite",
-                'models/text_classification_vocab.txt');
-            print("prediction : $prediction");
+          double score;
+          if (link.isEmpty) {
+            link = "";
+            text = msg.body;
+            type = "Unkown";
+            linkscore = 0;
           }
+          if (text.isEmpty) {
+            text = "";
+          }
+          if (link.isNotEmpty) {
+            await getURLType(link);
+            type ??= "Unkown";
+          }
+
+          print("text : $text");
+          print("Link : $link");
+          model = "";
+          score = await prediction(text, link, msg.body);
+
+          int state = 0;
+
+          if (score <= 30) {
+            state = 0;
+          }
+          if (score > 31 && score <= 70) {
+            state = 1;
+          }
+          if (score > 71) {
+            state = 2;
+          }
+
+          debugPrint("Model : $score | $predic | $link | $type | $linkscore | $state | $model");
 
           var samename = messageModels
               .indexWhere((model) => model.name == contacts.first.displayName);
@@ -274,12 +368,12 @@ class _AllsmsState extends State<Allsms> {
                 body: msg.body,
                 date: DateTime.parse(msg.date.toString()),
                 time: "${msg.date!.hour}:${msg.date!.minute}",
-                score: 0,
-                scoresms: 0,
-                state: 0,
-                linkbody: match,
-                linktype: "type",
-                scorelink: 0,
+                score: score,
+                scoresms: predic!,
+                linkbody: link,
+                linktype: type,
+                scorelink: linkscore,
+                state: state,
                 model: model));
           } else {
             messageModels.add(MessageModel(
@@ -290,12 +384,12 @@ class _AllsmsState extends State<Allsms> {
                       body: msg.body,
                       date: DateTime.parse(msg.date.toString()),
                       time: "${msg.date!.hour}:${msg.date!.minute}",
-                      score: 0,
-                      scoresms: 0,
-                      state: 0,
-                      linkbody: match,
-                      linktype: "type",
-                      scorelink: 0,
+                      score: score,
+                      scoresms: predic!,
+                      linkbody: link,
+                      linktype: type,
+                      scorelink: linkscore,
+                      state: state,
                       model: model)
                 ]));
           }
@@ -303,43 +397,61 @@ class _AllsmsState extends State<Allsms> {
       }
       if (contacts.isEmpty) {
         for (var msg in value) {
-          match = "";
+          link = "";
+          String text = "";
 
           matches = regExp.allMatches(msg.body);
           for (final m in matches) {
-            match = m[0]!;
-          }
-          // await getURLType(match);
-          // print(type);
-          var prediction;
-          model = await selectModels(msg.body);
-          print(model);
-          // if (msg.body.isEmpty && match.isEmpty) {}
-          if (model == "English") {
-            prediction = await classify(
-                msg.body,
-                "assets/models/nlp_rnn_w2v.tflite",
-                'models/nlp_w2v_text_classification_vocab.txt');
-          } else if (model == "Thai") {
-            prediction = await classify(
-                msg.body,
-                "assets/models/modelnew.tflite",
-                'models/text_classification_vocab.txt');
+            link = m[0];
+            text = msg.body.replaceFirst(link, '');
           }
 
-          print("prediction : $prediction");
+          double score;
+          if (link.isEmpty) {
+            link = "";
+            text = msg.body;
+            type = "Unkown";
+            linkscore = 0;
+          }
+          if (text.isEmpty) {
+            text = "";
+          }
+          if (link.isNotEmpty) {
+            await getURLType(link);
+            type ??= "Unkown";
+          }
+
+          print("text : $text");
+          print("Link : $link");
+          model = "";
+          score = await prediction(text, link, msg.body);
+
+          int state = 0;
+
+          if (score <= 30) {
+            state = 0;
+          }
+          if (score > 31 && score <= 70) {
+            state = 1;
+          }
+          if (score > 71) {
+            state = 2;
+          }
+
+          debugPrint("Model : $score | $predic | $link | $type | $linkscore | $state | $model");
+
           var samename = messageModels.indexWhere((model) => model.name == key);
           if (samename != -1) {
             messageModels[samename].messages.add(Messages(
                 body: msg.body,
                 date: DateTime.parse(msg.date.toString()),
                 time: "${msg.date!.hour}:${msg.date!.minute}",
-                score: 60,
-                scoresms: prediction,
-                state: 1,
-                linkbody: match,
-                linktype: "type",
-                scorelink: 0,
+                score: score,
+                scoresms: predic!,
+                linkbody: link,
+                linktype: type,
+                scorelink: linkscore,
+                state: state,
                 model: model));
           } else {
             messageModels.add(MessageModel(name: key, photo: [], messages: [
@@ -347,12 +459,12 @@ class _AllsmsState extends State<Allsms> {
                   body: msg.body,
                   date: DateTime.parse(msg.date.toString()),
                   time: "${msg.date!.hour}:${msg.date!.minute}",
-                  score: 60,
-                  scoresms: prediction,
-                  state: 1,
-                  linkbody: match,
-                  linktype: "type",
-                  scorelink: 0,
+                  score: score,
+                  scoresms: predic!,
+                  linkbody: link,
+                  linktype: type,
+                  scorelink: linkscore,
+                  state: state,
                   model: model)
             ]));
           }
@@ -362,8 +474,9 @@ class _AllsmsState extends State<Allsms> {
     // Print the result
     // JsonEncoder encoder = const JsonEncoder.withIndent('  ');
     // String prettyprint = encoder.convert(messageModels);
-    // debugPrint(prettyprint);
-    // print(jsonEncode(messageModels.length));
+    // // debugPrint(prettyprint);
+    // print(jsonEncode("Messages ${prettyprint}"));
+    // prettyPrintJson(messageModels.toString());
   }
 
   @override

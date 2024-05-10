@@ -44,8 +44,8 @@ class _ShowstaticState extends State<Showstatic> {
   void initState() {
     super.initState();
     calculateState();
+    linkstate();
     state = false;
-    getURL();
   }
 
   calculateState() {
@@ -72,36 +72,6 @@ class _ShowstaticState extends State<Showstatic> {
     }
   }
 
-  getURL() async {
-    if (widget.info.linkbody.isNotEmpty) {
-      res = await Data().xSendUrlScan(widget.info.linkbody.toString());
-      if (res == null) {
-        setState(() {
-          type = "Unkown";
-          state = true;
-        });
-      }
-
-      type = res!.attributes["categories"]["Webroot"];
-      if (type == null) {
-        setState(() {
-          type = res!.attributes["categories"]["Forcepoint ThreatSeeker"];
-          state = true;
-        });
-      } else if (res!.attributes["categories"]["Forcepoint ThreatSeeker"] ==
-          null) {
-        setState(() {
-          type = "Unkown";
-          state = true;
-        });
-      }
-      setState(() {
-        state = true;
-      });
-    }
-    state = true;
-  }
-
   int? count;
 
   countDoc() async {
@@ -111,6 +81,17 @@ class _ShowstaticState extends State<Showstatic> {
       count = snapshot.count;
     });
     print('collection Sum ${snapshot.count}');
+  }
+
+  String? textstate;
+
+  linkstate() {
+    if (widget.info.state == 1) {
+      textstate = "suspicious";
+    }
+    if (widget.info.state == 2) {
+      textstate = "malicious";
+    }
   }
 
   @override
@@ -136,252 +117,230 @@ class _ShowstaticState extends State<Showstatic> {
   }
 
   Widget body() {
-    if (res != null || state == true) {
-      return SingleChildScrollView(
-          child: Container(
-              padding: const EdgeInsets.all(20),
-              alignment: Alignment.topCenter,
-              child: Column(
-                children: [
-                  SizedBox(
-                      width: 240,
-                      child: Stack(alignment: Alignment.topCenter, children: [
-                        // ส่วนที่ 1
-                        Container(
-                          margin: const EdgeInsets.only(top: 8),
-                          child: DashedCircularProgressBar.square(
-                            dimensions: 226,
-                            startAngle: 270,
-                            sweepAngle: 42,
-                            // corners: StrokeCap.butt,
-                            circleCenterAlignment: Alignment.center,
-                            foregroundColor: greenState,
-                            backgroundColor: greenState,
-                            foregroundStrokeWidth: 15,
-                            backgroundStrokeWidth: 15,
-                            animation: true,
-                          ),
+    return SingleChildScrollView(
+        child: Container(
+            padding: const EdgeInsets.all(20),
+            alignment: Alignment.topCenter,
+            child: Column(
+              children: [
+                SizedBox(
+                    width: 240,
+                    child: Stack(alignment: Alignment.topCenter, children: [
+                      // ส่วนที่ 1
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        child: DashedCircularProgressBar.square(
+                          dimensions: 226,
+                          startAngle: 270,
+                          sweepAngle: 42,
+                          // corners: StrokeCap.butt,
+                          circleCenterAlignment: Alignment.center,
+                          foregroundColor: greenState,
+                          backgroundColor: greenState,
+                          foregroundStrokeWidth: 15,
+                          backgroundStrokeWidth: 15,
+                          animation: true,
                         ),
-                        // ส่วนที่ 2
-                        Container(
-                          margin: const EdgeInsets.only(top: 8),
-                          child: DashedCircularProgressBar.square(
-                            dimensions: 226,
-                            startAngle: 332,
-                            sweepAngle: 56,
-                            // corners: StrokeCap.butt,
-                            circleCenterAlignment: Alignment.center,
-                            foregroundColor: yelloState,
-                            backgroundColor: yelloState,
-                            foregroundStrokeWidth: 15,
-                            backgroundStrokeWidth: 15,
-                            animation: true,
-                          ),
+                      ),
+                      // ส่วนที่ 2
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        child: DashedCircularProgressBar.square(
+                          dimensions: 226,
+                          startAngle: 332,
+                          sweepAngle: 56,
+                          // corners: StrokeCap.butt,
+                          circleCenterAlignment: Alignment.center,
+                          foregroundColor: yelloState,
+                          backgroundColor: yelloState,
+                          foregroundStrokeWidth: 15,
+                          backgroundStrokeWidth: 15,
+                          animation: true,
                         ),
-                        // ส่วนที่ 3
-                        Container(
-                          margin: const EdgeInsets.only(top: 8),
-                          child: DashedCircularProgressBar.square(
-                            dimensions: 226,
-                            startAngle: 48,
-                            sweepAngle: 42,
-                            // corners: StrokeCap.butt,
-                            circleCenterAlignment: Alignment.center,
-                            foregroundColor: redState,
-                            backgroundColor: redState,
-                            foregroundStrokeWidth: 15,
-                            backgroundStrokeWidth: 15,
-                            animation: true,
-                          ),
+                      ),
+                      // ส่วนที่ 3
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        child: DashedCircularProgressBar.square(
+                          dimensions: 226,
+                          startAngle: 48,
+                          sweepAngle: 42,
+                          // corners: StrokeCap.butt,
+                          circleCenterAlignment: Alignment.center,
+                          foregroundColor: redState,
+                          backgroundColor: redState,
+                          foregroundStrokeWidth: 15,
+                          backgroundStrokeWidth: 15,
+                          animation: true,
                         ),
-                        Container(
-                            // color: Colors.white.withOpacity(0.5),
-                            // padding: const EdgeInsets.only(top: 20),
-                            child: ArcProgressBar(
-                                percentage: realNew,
-                                arcThickness: 15,
-                                strokeCap: StrokeCap.round,
-                                innerPadding: 15,
-                                handleSize: 30,
-                                animationDuration: Duration.zero,
-                                foregroundColor: Colors.transparent,
-                                backgroundColor: Colors.transparent,
-                                // handleColor: Colorhandle,
-                                handleWidget: Container(
-                                    decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        border: Border.all(
-                                          color: colorhandle,
-                                          width: 6,
-                                        ),
-                                        borderRadius: const BorderRadius.all(
-                                            Radius.circular(100)))))),
-                        Positioned(bottom: 80, child: circleState()),
-                        Positioned(
-                            bottom: 30,
-                            child: Text('Risk level : ${widget.info.score}',
-                                style: const TextStyle(
-                                  color: Color(0xFF83868E),
-                                  fontSize: 16,
-                                  fontFamily: 'Kanit',
-                                  fontWeight: FontWeight.w500,
-                                )))
-                      ])),
-                  Container(
-                    width: 400,
-                    margin: const EdgeInsets.all(10),
-                    padding: const EdgeInsets.all(10),
-                    decoration: ShapeDecoration(
-                        color: Colors.white.withOpacity(0.5),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(21))),
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          child: Text(widget.name,
-                              textAlign: TextAlign.center,
+                      ),
+                      Container(
+                          // color: Colors.white.withOpacity(0.5),
+                          // padding: const EdgeInsets.only(top: 20),
+                          child: ArcProgressBar(
+                              percentage: realNew,
+                              arcThickness: 15,
+                              strokeCap: StrokeCap.round,
+                              innerPadding: 15,
+                              handleSize: 30,
+                              animationDuration: Duration.zero,
+                              foregroundColor: Colors.transparent,
+                              backgroundColor: Colors.transparent,
+                              // handleColor: Colorhandle,
+                              handleWidget: Container(
+                                  decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      border: Border.all(
+                                        color: colorhandle,
+                                        width: 6,
+                                      ),
+                                      borderRadius: const BorderRadius.all(
+                                          Radius.circular(100)))))),
+                      Positioned(bottom: 80, child: circleState()),
+                      Positioned(
+                          bottom: 30,
+                          child: Text('Risk level : ${widget.info.score}',
                               style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 24,
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w600,
-                              )),
-                        ),
-                        Container(
-                          margin: const EdgeInsets.only(
-                              bottom: 10, left: 25, right: 25),
-                          alignment: Alignment.center,
-                          width: 300,
-                          constraints: const BoxConstraints(minHeight: 60),
-                          decoration: ShapeDecoration(
-                              color: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10)),
-                              shadows: const [
-                                BoxShadow(
-                                  color: Color(0x0A000000),
-                                  blurRadius: 25,
-                                  offset: Offset(0, 5),
-                                  spreadRadius: 0,
-                                )
-                              ]),
-                          child: Container(
-                              padding: const EdgeInsets.all(10),
-                              child: Text(
-                                widget.info.body,
-                                style: textmsg,
-                                textAlign: TextAlign.center,
-                              )),
-                        ),
-                        Visibility(
-                            visible: widget.info.linkbody.isNotEmpty,
-                            child: _linkInfo()),
-                      ],
-                    ),
-                  ),
-                  Container(
-                      padding: const EdgeInsets.only(top: 50),
-                      child: Text("Do you think this message is fraud")),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.center,
+                                color: Color(0xFF83868E),
+                                fontSize: 16,
+                                fontFamily: 'Kanit',
+                                fontWeight: FontWeight.w500,
+                              )))
+                    ])),
+                Container(
+                  width: 400,
+                  margin: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(10),
+                  decoration: ShapeDecoration(
+                      color: Colors.white.withOpacity(0.5),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(21))),
+                  child: Column(
                     children: [
                       Container(
-                          alignment: Alignment.center,
-                          width: 120,
-                          height: 40,
-                          margin: const EdgeInsets.all(10),
-                          padding: const EdgeInsets.all(10),
-                          decoration: ShapeDecoration(
-                              color: const Color(0xFFECECEC),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8)),
-                              shadows: <BoxShadow>[
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 1,
-                                  offset: Offset(0, 2),
-                                )
-                              ]),
-                          child: TextButton(
-                            onPressed: () async {
-                              await countDoc();
-                              db.collection("sms").doc("${count! + 1}").set({
-                                "respone": "yes",
-                                "all_score": widget.info.score,
-                                "score link": 0,
-                                "score sms": 0,
-                                "sms": widget.info.body
-                              });
-                            },
-                            style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                foregroundColor: Colors.white.withOpacity(0)),
-                            child: const Text("Yes",
-                                style: TextStyle(color: Color(0xFF7A7A7A))),
-                          )),
+                        padding: const EdgeInsets.all(10),
+                        child: Text(widget.name,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 24,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w600,
+                            )),
+                      ),
                       Container(
-                          alignment: Alignment.center,
-                          width: 120,
-                          height: 40,
-                          margin: const EdgeInsets.all(10),
-                          padding: const EdgeInsets.all(10),
-                          decoration: ShapeDecoration(
-                              color: const Color(0xFFECECEC),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8)),
-                              shadows: <BoxShadow>[
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 1,
-                                  offset: Offset(0, 2),
-                                )
-                              ]),
-                          child: TextButton(
-                            onPressed: () async {
-                              await countDoc();
-                              db.collection("sms").doc("${count! + 1}").set({
-                                "respone": "no",
-                                "all_score": widget.info.score,
-                                "score link": 0,
-                                "score sms": 0,
-                                "sms": widget.info.body
-                              });
-                            },
-                            style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                foregroundColor: Colors.white.withOpacity(0)),
-                            child: const Text("No",
-                                style: TextStyle(color: Color(0xFF7A7A7A))),
-                          )),
+                        margin: const EdgeInsets.only(
+                            bottom: 10, left: 25, right: 25),
+                        alignment: Alignment.center,
+                        width: 300,
+                        constraints: const BoxConstraints(minHeight: 60),
+                        decoration: ShapeDecoration(
+                            color: Colors.white,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                            shadows: const [
+                              BoxShadow(
+                                color: Color(0x0A000000),
+                                blurRadius: 25,
+                                offset: Offset(0, 5),
+                                spreadRadius: 0,
+                              )
+                            ]),
+                        child: Container(
+                            padding: const EdgeInsets.all(10),
+                            child: Text(
+                              widget.info.body,
+                              style: textmsg,
+                              textAlign: TextAlign.center,
+                            )),
+                      ),
+                      Visibility(
+                          visible: widget.info.state != 0, child: _linkInfo()),
                     ],
-                  )
-                ],
-              )));
-    }
-    return Container(
-        alignment: Alignment.center,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              "loading...",
-              style: TextStyle(fontFamily: "Kanit", fontSize: 15),
-            ),
-            Container(
-              padding: const EdgeInsets.all(10),
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation(mainScreen),
-              ),
-            ),
-          ],
-        ));
+                  ),
+                ),
+                Container(
+                    padding: const EdgeInsets.only(top: 50),
+                    child: Text("Do you think this message is fraud")),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                        alignment: Alignment.center,
+                        width: 120,
+                        height: 40,
+                        margin: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(10),
+                        decoration: ShapeDecoration(
+                            color: const Color(0xFFECECEC),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                            shadows: <BoxShadow>[
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 1,
+                                offset: Offset(0, 2),
+                              )
+                            ]),
+                        child: TextButton(
+                          onPressed: () async {
+                            await countDoc();
+                            db.collection("sms").doc("${count! + 1}").set({
+                              "respone": "yes",
+                              "all_score": widget.info.score,
+                              "score link": widget.info.scorelink,
+                              "score sms": widget.info.scoresms,
+                              "sms": widget.info.body
+                            });
+                          },
+                          style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              foregroundColor: Colors.white.withOpacity(0)),
+                          child: const Text("Yes",
+                              style: TextStyle(color: Color(0xFF7A7A7A))),
+                        )),
+                    Container(
+                        alignment: Alignment.center,
+                        width: 120,
+                        height: 40,
+                        margin: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(10),
+                        decoration: ShapeDecoration(
+                            color: const Color(0xFFECECEC),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                            shadows: <BoxShadow>[
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 1,
+                                offset: Offset(0, 2),
+                              )
+                            ]),
+                        child: TextButton(
+                          onPressed: () async {
+                            await countDoc();
+                            db.collection("sms").doc("${count! + 1}").set({
+                              "respone": "no",
+                              "all_score": widget.info.score,
+                              "score link": widget.info.scorelink,
+                              "score sms": widget.info.scoresms,
+                              "sms": widget.info.body
+                            });
+                          },
+                          style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              foregroundColor: Colors.white.withOpacity(0)),
+                          child: const Text("No",
+                              style: TextStyle(color: Color(0xFF7A7A7A))),
+                        )),
+                  ],
+                )
+              ],
+            )));
   }
 
   Widget _linkInfo() {
-    // print(widget.info.linkbody);
     return Column(
       children: [
         Row(
@@ -399,15 +358,15 @@ class _ShowstaticState extends State<Showstatic> {
                   return Icon(Icons.priority_high,
                       color: Colors.white, size: constraint.biggest.height);
                 })),
-            const Text("Potentially unsafe link detected",
-                style: TextStyle(
+            Text("Potentially $textstate link detected",
+                style: const TextStyle(
                     fontFamily: "Inter",
                     fontSize: 13,
                     color: Color(0xFF7A7A7A)),
                 textAlign: TextAlign.center)
           ],
         ),
-        Text("Type : ${type}",
+        Text("Type : ${widget.info.linktype}",
             style: const TextStyle(
                 fontFamily: "Inter", fontSize: 13, color: Color(0xFF7A7A7A)),
             textAlign: TextAlign.center)
