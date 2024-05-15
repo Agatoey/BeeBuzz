@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 class MessageModel {
   MessageModel(
       {required this.name, required this.photo, required this.messages});
@@ -44,11 +42,11 @@ class Messages {
         'date': date.toString(),
         'time': time,
         'score': score,
-        'scoresms':scoresms,
+        'scoresms': scoresms,
         'state': state,
         'linkbody': linkbody,
         'linktype': linktype,
-        'scorelink':scorelink,
+        'scorelink': scorelink,
         'model': model
       };
 }

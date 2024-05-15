@@ -1,4 +1,4 @@
-import 'package:appbeebuzz/pages/OTPreader.dart';
+import 'package:appbeebuzz/main.dart';
 import 'package:appbeebuzz/pages/register.dart';
 import 'package:appbeebuzz/widgets/inputFormField.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:appbeebuzz/constant.dart';
 import 'package:appbeebuzz/pages/allSMS.dart';
 import 'package:flutter_advanced_segment/flutter_advanced_segment.dart';
+import 'package:flutter_styled_toast/flutter_styled_toast.dart';
 import 'package:sign_in_button/sign_in_button.dart';
 import 'package:appbeebuzz/utils/auth_methods.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -26,7 +28,7 @@ class _LoginPageState extends State<LoginPage> {
 
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey();
   final _formKey = GlobalKey<FormState>();
-  final _OTPformKey = GlobalKey<FormState>();
+  final _otpformKey = GlobalKey<FormState>();
   final _phoneKey = GlobalKey<FormState>();
 
   String errorString = "";
@@ -56,7 +58,8 @@ class _LoginPageState extends State<LoginPage> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasData) {
-            return const Allsms();
+            initializeService();
+            return Allsms(listMessage: [],);
           } else {
             return newLogin();
           }
@@ -143,7 +146,7 @@ class _LoginPageState extends State<LoginPage> {
           bool res = await _authMethods.signInWithGoogle();
           if (res) {
             Navigator.pushReplacement(context,
-                MaterialPageRoute(builder: (context) => const Allsms()));
+                MaterialPageRoute(builder: (context) => Allsms(listMessage: [],)));
           }
         },
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -180,7 +183,7 @@ class _LoginPageState extends State<LoginPage> {
             type: "email",
             controller: emailController),
         buildTextFieldPassword(),
-        isCheckbox(),
+        // isCheckbox(),
         buildButtonLogin("email")
       ]),
     );
@@ -250,17 +253,16 @@ class _LoginPageState extends State<LoginPage> {
         ),
         buildButtonSendOTP(),
         Form(
-          key: _OTPformKey,
-          child: Container(
-            margin: const EdgeInsets.only(top: 10),
-            child: InputFormField(
-                textHint: "OTP Code",
-                obscure: false,
-                type: "otp",
-                controller: otpController),
-          ),
-        ),
-        isCheckbox(),
+            key: _otpformKey,
+            child: Container(
+              margin: const EdgeInsets.only(top: 10),
+              child: InputFormField(
+                  textHint: "OTP Code",
+                  obscure: false,
+                  type: "otp",
+                  controller: otpController),
+            )),
+        // isCheckbox(),
         buildButtonLogin("phone")
       ],
     );
@@ -334,25 +336,31 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
       Container(
-        decoration: ShapeDecoration(
-            color: Colors.white.withOpacity(0.7),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(21))),
-        child: ValueListenableBuilder<String>(
-          valueListenable: _selectedSegment,
-          builder: (_, key, __) {
-            switch (key) {
-              case 'email':
-                return email();
-              case 'phonenumber':
-                return phonenumber();
-              default:
-                return const SizedBox();
-            }
-          },
-        ),
-      )
+          decoration: ShapeDecoration(
+              color: Colors.white.withOpacity(0.7),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(21))),
+          child: ValueListenableBuilder<String>(
+              valueListenable: _selectedSegment,
+              builder: (_, key, __) {
+                switch (key) {
+                  case 'email':
+                    return email();
+                  case 'phonenumber':
+                    return phonenumber();
+                  default:
+                    return const SizedBox();
+                }
+              }))
     ]);
+  }
+
+  Future<bool> checkPhoneNumberAlreadyUsed(String phoneNumber) async {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .where('username', isEqualTo: phoneNumber)
+        .get();
+    return querySnapshot.docs.isNotEmpty;
   }
 
   Widget buildButtonSendOTP() {
@@ -380,26 +388,28 @@ class _LoginPageState extends State<LoginPage> {
         onPressed: () async {
           _phoneKey.currentState?.validate();
           String phoneNumber = phoneNumberController.text.trim();
-          if (phoneNumber.isNotEmpty) {
-            try {
-              if (phoneNumber.startsWith('0') && phoneNumber.length == 10) {
+          if (phoneNumber.startsWith('0') && phoneNumber.length == 10) {
+            print(phoneNumber.length);
+            phoneNumber = '+66${phoneNumber.substring(1)}';
+          } else if (phoneNumber.startsWith('+66')) {
+            if (phoneNumber.startsWith('+660')) {
+              if (phoneNumber.length == 13) {
                 print(phoneNumber.length);
-                phoneNumber = '+66${phoneNumber.substring(1)}';
-              } else if (phoneNumber.startsWith('+66')) {
-                if (phoneNumber.startsWith('+660')) {
-                  if (phoneNumber.length == 13) {
-                    print(phoneNumber.length);
-                    phoneNumber = '+66${phoneNumber.substring(4)}';
-                  } else {
-                    errrorText("รูปแบบไม่ถูกต้อง", Colors.red);
-                  }
-                } else if (phoneNumber.length == 12) {
-                  print(phoneNumber.length);
-                  phoneNumber = phoneNumber;
-                } else {
-                  errrorText("รูปแบบไม่ถูกต้อง", Colors.red);
-                }
+                phoneNumber = '+66${phoneNumber.substring(4)}';
+              } else {
+                errrorText("Invalid format", Colors.red);
               }
+            } else if (phoneNumber.length == 12) {
+              print(phoneNumber.length);
+              phoneNumber = phoneNumber;
+            } else {
+              errrorText("Invalid format", Colors.red);
+            }
+          }
+          bool phoneNumberAlreadyUsed =
+              await checkPhoneNumberAlreadyUsed(phoneNumber);
+          if (phoneNumber.isNotEmpty && phoneNumberAlreadyUsed == true) {
+            try {
               await _auth.verifyPhoneNumber(
                 phoneNumber: phoneNumber.toString(),
                 timeout: const Duration(seconds: 1),
@@ -420,6 +430,8 @@ class _LoginPageState extends State<LoginPage> {
             } on FirebaseAuthException catch (e) {
               errrorText(e.message.toString(), Colors.red);
             }
+          } else if (phoneNumberAlreadyUsed == false) {
+            errrorText("This number doesn't exist.", Colors.red);
           }
         },
       ),
@@ -436,21 +448,18 @@ class _LoginPageState extends State<LoginPage> {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
       child: TextButton(
         child: const Center(
-          child: Text(
-            "Login",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFF2E2E2E),
-              fontSize: 15,
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              height: 0.17,
-            ),
-          ),
-        ),
+            child: Text("Login",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFF2E2E2E),
+                  fontSize: 15,
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  height: 0.17,
+                ))),
         onPressed: () async {
           if (type == "phone") {
-            _OTPformKey.currentState?.validate();
+            _otpformKey.currentState?.validate();
           }
           _formKey.currentState?.validate();
           await signIn();
@@ -468,10 +477,9 @@ class _LoginPageState extends State<LoginPage> {
       _auth
           .signInWithEmailAndPassword(email: email, password: password)
           .then((user) async {
-        print(
-            "signed in ${user.user?.email} && providers : ${user.user?.providerData}");
+        print("signed in ${user.user?.email} && providers : ${user.user?.providerData}");
       }).catchError((error) {
-        var errrorText = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
+        var errrorText = "The username or password is incorrect.";
         // print(error.message);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(errrorText, style: TextStyle(color: Colors.white)),
@@ -488,16 +496,31 @@ class _LoginPageState extends State<LoginPage> {
         );
 
         final User? user = (await _auth.signInWithCredential(credential)).user;
+        showToast("${user?.displayName} : Successfully signed in",
+            // ignore: use_build_context_synchronously
+            context: context,
+            animation: StyledToastAnimation.fade,
+            reverseAnimation: StyledToastAnimation.fade,
+            curve: Curves.linear,
+            reverseCurve: Curves.linear);
 
         // errrorText( "Successfully signed in UID: ${user?.displayName}", Colors.green);
       } catch (e) {
         if (e.toString().contains(
             "The verification code from SMS/TOTP is invalid. Please check and enter the correct verification code again")) {
-          errrorText(
+          showToast(
               "The verification code from SMS/TOTP is invalid. Please check and enter the correct verification code again",
-              Colors.red);
+              // ignore: use_build_context_synchronously
+              context: context,
+              animation: StyledToastAnimation.fade,
+              reverseAnimation: StyledToastAnimation.fade,
+              curve: Curves.linear,
+              reverseCurve: Curves.linear);
+          // errrorText(
+          //     "The verification code from SMS/TOTP is invalid. Please check and enter the correct verification code again",
+          //     Colors.red);
         }
-        // errrorText("Failed to sign in: $e", Colors.red);
+        errrorText("Failed to sign in: $e", Colors.red);
       }
     }
   }

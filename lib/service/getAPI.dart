@@ -7,7 +7,7 @@ import 'package:json_pretty/json_pretty.dart';
 
 class Data {
   final String xApiToken =
-      '0b8b7ca6e08ba89b1b71b13634fdb6705613425eb9f1f35ebcfb6d76cc17f7e1';
+      '0d4b50c2d7d24ad44032b1eeea0fa7eda3c33b616134aadf99183e4a470b55e6';
   final String linkScanUrl = 'https://www.virustotal.com/api/v3/urls';
   final String linkScanUrlAnalysis =
       'https://www.virustotal.com/api/v3/analyses/';

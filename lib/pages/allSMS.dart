@@ -1,31 +1,35 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:ffi';
 import 'package:appbeebuzz/models/messages_model.dart';
 import 'package:appbeebuzz/pages/accPage.dart';
 import 'package:appbeebuzz/pages/login.dart';
 import 'package:appbeebuzz/pages/filterPage.dart';
+import 'package:appbeebuzz/pages/settingPage.dart';
 import 'package:appbeebuzz/pages/showmsg.dart';
 import 'package:appbeebuzz/service/getAPI.dart';
 import 'package:appbeebuzz/style.dart';
 import 'package:appbeebuzz/utils/auth_methods.dart';
+import 'package:appbeebuzz/utils/classify.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:appbeebuzz/constant.dart';
 import 'package:contacts_service/contacts_service.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
-import 'package:json_pretty/json_pretty.dart';
+import 'package:flutter_styled_toast/flutter_styled_toast.dart';
+import 'package:page_transition/page_transition.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:unicons/unicons.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 import 'package:flutter_advanced_segment/flutter_advanced_segment.dart';
-import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
 
 class Allsms extends StatefulWidget {
-  const Allsms({super.key});
+  Allsms({super.key, required this.listMessage});
+
+  static const String routeName = '/Allsms';
+  List<MessageModel> listMessage;
 
   @override
   State<Allsms> createState() => _AllsmsState();
@@ -40,7 +44,6 @@ class _AllsmsState extends State<Allsms> {
   List<SmsMessage> _messages = [];
   List<MessageModel> messageModels = [];
 
-  bool isPress1 = true;
   final _selectedSegment = ValueNotifier('all');
 
   late String? model;
@@ -49,24 +52,108 @@ class _AllsmsState extends State<Allsms> {
   final user = FirebaseAuth.instance.currentUser;
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
-  final int _sentenceLen = 79;
-  final String start = '<START>';
-  final String pad = '<PAD>';
-  final String unk = '<UNKNOWN>';
-  late Map<String, int> _dict;
+  late Classifier _classifier;
+
+  DateTime timeBackPressed = DateTime.now();
+
+  late String tokenize;
+  String? type;
+  late double linkscore;
 
   @override
   void initState() {
-    isPress1 = true;
-    roadSMSTest();
-    getJson();
-    model = "";
+    reload();
+    messageModels = widget.listMessage;
+    _classifier = Classifier();
     super.initState();
   }
 
   @override
   void dispose() {
     super.dispose();
+  }
+
+  int countMessages(List<MessageModel> listMessage) {
+    return listMessage
+        .map((messageModel) => messageModel.messages.length)
+        .fold(0, (previousValue, element) => previousValue + element);
+  }
+
+  bool areBodiesEqual(List<MessageModel> list1, List<SmsMessage> list2) {
+    if (countMessages(list1) != list2.length) {
+      return false;
+    }
+    List x = [];
+    for (int i = 0; i < list1.length; i++) {
+      for (int j = 0; j < list1[i].messages.length; j++) {
+        x.add(list1[i].messages[j].body);
+      }
+    }
+    for (int i = 0; i < list1.length; i++) {
+      // print("${x[i]} : ${list2[i].body}");
+      if (x[i] != list2[i].body) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  // bool areBodiesEqual2(List<MessageModel> list1, List<MessageModel> list2) {
+  //   if (countMessages(list1) != countMessages(list2)) {
+  //     return false;
+  //   }
+
+  //   for (int i = 0; i < list1.length; i++) {
+  //     for (int j = 0; j < list1[i].messages.length; j++) {
+  //       if (list1[i].messages[j].body != list2[i].messages[j].body) {
+  //         return false;
+  //       }
+  //     }
+  //   }
+  //   return true;
+  // }
+
+  // void printBodies(List<MessageModel> list1, List<SmsMessage> list2) {
+  //   for (int i = 0; i < list1.length; i++) {
+  //     for (int j = 0; j < list1[i].messages.length; j++) {
+  //       debugPrint('List 1 body: ${list1[i].messages[j].body}');
+  //     }
+  //   }
+  //   for (int i = 0; i < list2.length; i++) {
+  //     debugPrint('List 2 body: ${list2[i].body}');
+  //   }
+  // }
+
+  List<SmsMessage> testSMS = [];
+
+  Future reload() async {
+    testSMS = [];
+    final messages = await _query.querySms(kinds: [
+      SmsQueryKind.inbox,
+    ], count: 5);
+    setState(() {
+      testSMS = messages;
+    });
+
+    var count1 = areBodiesEqual(widget.listMessage, testSMS);
+    var count2 = areBodiesEqual(messageModels, testSMS);
+    // printBodies(messageModels, testSMS);
+    debugPrint(
+        "จำนวน ${countMessages(widget.listMessage)} ${testSMS.length} : $count1 : $count2");
+    if (count1 == false || count2 == false || messageModels.isEmpty) {
+      loadSMS();
+      getJson();
+      debugPrint("โหลดใหม่");
+    }
+    if (widget.listMessage.isNotEmpty && count1) {
+      debugPrint(
+          "จำนวนข้อความ1: ${countMessages(widget.listMessage)} ${testSMS.length} : $count1");
+      messageModels = widget.listMessage;
+    } else if (messageModels.isNotEmpty) {
+      messageModels = messageModels;
+      debugPrint("จำนวนข้อความ2: ${testSMS.length}");
+    }
   }
 
   getListFilter() async {
@@ -82,101 +169,28 @@ class _AllsmsState extends State<Allsms> {
     }
   }
 
-  // TensorFlow Lite Interpreter object
-  late tfl.Interpreter _interpreter;
-
-  Future<bool> _loadModel(String modelFile) async {
-    // Creating the interpreter using Interpreter.fromAsset
-    // print('Interpreter loaded ${_interpreter.isAllocated}');
-    _interpreter = await tfl.Interpreter.fromAsset('assets/models/$modelFile');
-    // print('Interpreter loaded successfully ${_interpreter.isAllocated}');
-    return _interpreter.isAllocated;
-  }
-
-  Future<bool> _loadDictionary(String vocabFile) async {
-    final vocab = await rootBundle.loadString('assets/models/$vocabFile');
-    var dict = <String, int>{};
-    final vocabList = vocab.split('\n');
-    for (var i = 0; i < vocabList.length; i++) {
-      var entry = vocabList[i].trim().split(' ');
-      dict[entry[0]] = int.parse(entry[1]);
-    }
-    _dict = dict;
-    // print('Dictionary loaded successfully');
-    return _dict.isNotEmpty;
-  }
-
-  Future<double?> classify(
-      String rawText, String modelFile, String vocabFile) async {
-    bool res = await _loadModel(modelFile);
-    if (res == true) {
-      bool res2 = await _loadDictionary(vocabFile);
-      if (res2 == true) {
-        List<List<double>> input = tokenizeInputText(rawText);
-        var output = List<double>.filled(1, 0).reshape([1, 1]);
-        _interpreter.run(input, output);
-        // print(input);
-        return output[0][0];
-      }
-    }
-    return null;
-  }
-
-  List<List<double>> tokenizeInputText(String text) {
-    // Whitespace tokenization
-    // print(text);
-    final toks = text.split(' ');
-
-    // final toks = [text];
-
-    debugPrint("toks >>>>> $toks");
-
-    // Create a list of length==_sentenceLen filled with the value <pad>
-    var vec = List<double>.filled(_sentenceLen, _dict[pad]!.toDouble());
-
-    var index = 0;
-    if (_dict.containsKey(start)) {
-      vec[index++] = _dict[start]!.toDouble();
-    }
-
-    // For each word in sentence find corresponding index in dict
-    for (var tok in toks) {
-      if (index > _sentenceLen) {
-        break;
-      }
-      vec[index++] = _dict.containsKey(tok)
-          ? _dict[tok]!.toDouble()
-          : _dict[unk]!.toDouble();
-    }
-
-    // returning List<List<double>> as our interpreter input tensor expects the shape, [1,256]
-    // print(vec);
-    return [vec];
-  }
-
-  Future roadSMSTest() async {
+  Future loadSMS() async {
+    print("Load");
     messagesBySender = {};
     _messages = [];
     var permission = await Permission.sms.request();
     if (!permission.isGranted) {
     } else {
-      await Permission.contacts.request();
-      final messages = await _query.querySms(
-        kinds: [
-          SmsQueryKind.inbox,
-        ],
-      );
+      final messages = await _query.querySms(kinds: [
+        SmsQueryKind.inbox,
+      ], count: 5);
       setState(() {
         _messages = messages;
       });
 
       await getListFilter();
 
-      // debugPrint("Before Filter : ${_messages.length}");
       if (filterTexts!.isNotEmpty) {
         _messages.removeWhere((message) {
           for (var textFilter in filterTexts!) {
-            if (message.body!.contains(textFilter)) {
+            if (message.body!
+                .toLowerCase()
+                .contains(textFilter.toLowerCase())) {
               return true;
             }
           }
@@ -185,7 +199,6 @@ class _AllsmsState extends State<Allsms> {
       } else if (filterTexts == null) {
         return _messages;
       }
-      // debugPrint("After Fillter : ${_messages.length}");
 
       for (var message in _messages) {
         if (!messagesBySender.containsKey(message.sender)) {
@@ -197,110 +210,6 @@ class _AllsmsState extends State<Allsms> {
       }
     }
   }
-
-  late String tokenize;
-
-  Future<String?> selectModels(String sms) async {
-    var res = await Data().selectmodel(sms);
-    model = res!["model"].toString();
-    tokenize = res["sms"].toString();
-    print(tokenize);
-    return model;
-  }
-
-  String? type;
-  late double linkscore;
-
-  getURLType(String linkbody) async {
-    type = "";
-    var res = await Data().xSendUrlScan(linkbody);
-
-    if (res?.attributes["last_analysis_stats"] != null) {
-      Map<String, dynamic> x;
-
-      x = res?.attributes["last_analysis_stats"];
-      print("last_analysis_stats : $x");
-
-      int maxMalicious = x['malicious'] ?? 0;
-      int maxSuspicious = x['suspicious'] ?? 0;
-
-      x.forEach((key, value) {
-        if (key == 'malicious' && value > maxMalicious) {
-          maxMalicious = value;
-        }
-        if (key == 'suspicious' && value > maxSuspicious) {
-          maxSuspicious = value;
-        }
-      });
-
-      if (maxMalicious > maxSuspicious) {
-        linkscore = 1;
-      } else if (maxMalicious < maxSuspicious) {
-        linkscore = 0.5;
-      } else if (maxMalicious == maxSuspicious) {
-        linkscore = 1;
-        if (maxMalicious == 0 && maxSuspicious == 0) {
-          linkscore = 0;
-        }
-      }
-    } else if (res?.attributes["last_analysis_stats"] == null) {
-      linkscore = 0;
-    }
-
-    type = res?.attributes["categories"]["Webroot"];
-    type ??= res?.attributes["categories"]["Forcepoint ThreatSeeker"];
-    type ??= "Unkown";
-  }
-
-  double? predic;
-  Future<double> prediction(String text, String link, String msg) async {
-    predic = 0;
-    double score = 0;
-    // linkscore = 1; //test
-    // print("linkscore : $linkscore");
-    if (text == "Text" && link.isNotEmpty) {
-      score = linkscore * 100;
-      predic = 0;
-      model = "link";
-      print("Predic 1: $text || $link || $model || $linkscore");
-    } else if (text.toString().isNotEmpty && link.isEmpty) {
-      model = await selectModels(msg);
-      if (model == "english") {
-        predic = await classify(
-            tokenize, "nlp_lstm_w2v.tflite", 'nlp_w2v_text_classification_vocab.txt');
-        score = (predic! * 100);
-        print("Predic 2: $text || $link || $model || $linkscore");
-      }
-      if (model == "thai") {
-        predic = await classify(
-            tokenize, "nlp_lstm_w2v.tflite", 'nlp_w2v_text_classification_vocab.txt');
-        score = predic! * 100;
-        print("Predic 3: $text || $link || $model || $linkscore");
-      }
-    } else if (text.toString().isNotEmpty && link.isNotEmpty) {
-      model = await selectModels(msg);
-      if (model == "english") {
-        predic = await classify(
-            tokenize, "nlp_lstm_w2v.tflite", 'nlp_w2v_text_classification_vocab.txt');
-        score = (predic! * 50) + (linkscore * 50);
-        print("Predic 4: $text || $link || $model || $linkscore");
-      }
-      if (model == "thai") {
-        predic = await classify(
-            tokenize, "nlp_lstm_w2v.tflite", 'nlp_w2v_text_classification_vocab.txt');
-        score = (predic! * 50) + (linkscore * 50);
-        print("Predic 5: $text || $link || $model || $linkscore");
-      }
-    }
-    print("Total predic: $predic");
-    return score;
-  }
-
-  // bool _isLink(String input) {
-  //   final matcher = RegExp(
-  //       r"(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)");
-  //   return matcher.hasMatch(input);
-  // }
 
   getJson() async {
     late String link;
@@ -318,8 +227,6 @@ class _AllsmsState extends State<Allsms> {
         for (var msg in value) {
           link = "";
           String text = "";
-
-          // print("Check: ${_isLink(msg.body).toString()}");
 
           matches = regExp.allMatches(msg.body);
           for (final m in matches) {
@@ -342,8 +249,6 @@ class _AllsmsState extends State<Allsms> {
             type ??= "Unkown";
           }
 
-          print("text : $text");
-          print("Link : $link");
           model = "";
           score = await prediction(text, link, msg.body);
 
@@ -359,7 +264,8 @@ class _AllsmsState extends State<Allsms> {
             state = 2;
           }
 
-          debugPrint("Model : $score | $predic | $link | $type | $linkscore | $state | $model");
+          debugPrint(
+              "Model : $score | $predic | $link | $type | $linkscore | $state | $model");
 
           var samename = messageModels
               .indexWhere((model) => model.name == contacts.first.displayName);
@@ -421,8 +327,8 @@ class _AllsmsState extends State<Allsms> {
             type ??= "Unkown";
           }
 
-          print("text : $text");
-          print("Link : $link");
+          // print("text : $text");
+          // print("Link : $link");
           model = "";
           score = await prediction(text, link, msg.body);
 
@@ -438,7 +344,8 @@ class _AllsmsState extends State<Allsms> {
             state = 2;
           }
 
-          debugPrint("Model : $score | $predic | $link | $type | $linkscore | $state | $model");
+          debugPrint(
+              "Model : $score | $predic | $link | $type | $linkscore | $state | $model");
 
           var samename = messageModels.indexWhere((model) => model.name == key);
           if (samename != -1) {
@@ -476,101 +383,286 @@ class _AllsmsState extends State<Allsms> {
     // String prettyprint = encoder.convert(messageModels);
     // // debugPrint(prettyprint);
     // print(jsonEncode("Messages ${prettyprint}"));
-    // prettyPrintJson(messageModels.toString());
+    // for (var element in messageModels) {
+    //   debugPrint(element.messages.first.body);
+    // }
+
+    setState(() {
+      widget.listMessage = messageModels;
+    });
+    for (var element in widget.listMessage) {
+      debugPrint(element.messages.first.body);
+    }
+  }
+
+  Future<String?> selectModels(String sms) async {
+    var res = await Data().selectmodel(sms);
+    model = res!["model"].toString();
+    tokenize = res["sms"].toString();
+    print(tokenize);
+    return model;
+  }
+
+  getURLType(String linkbody) async {
+    type = "";
+    var res = await Data().xSendUrlScan(linkbody);
+
+    if (res?.attributes["last_analysis_stats"] != null) {
+      Map<String, dynamic> x;
+
+      x = res?.attributes["last_analysis_stats"];
+      debugPrint("last_analysis_stats : $x");
+
+      int maxMalicious = x['malicious'] ?? 0;
+      int maxSuspicious = x['suspicious'] ?? 0;
+
+      x.forEach((key, value) {
+        if (key == 'malicious' && value > maxMalicious) {
+          maxMalicious = value;
+        }
+        if (key == 'suspicious' && value > maxSuspicious) {
+          maxSuspicious = value;
+        }
+      });
+
+      if (maxMalicious > maxSuspicious) {
+        linkscore = 1;
+      } else if (maxMalicious < maxSuspicious) {
+        linkscore = 0.5;
+      } else if (maxMalicious == maxSuspicious) {
+        linkscore = 1;
+        if (maxMalicious == 0 && maxSuspicious == 0) {
+          linkscore = 0;
+        }
+      }
+    } else if (res?.attributes["last_analysis_stats"] == null) {
+      linkscore = 0;
+    }
+
+    type = res?.attributes["categories"]["Webroot"];
+    type ??= res?.attributes["categories"]["Forcepoint ThreatSeeker"];
+    type ??= "Unkown";
+    debugPrint("last_analysis_stats : $type");
+  }
+
+  double? predic;
+  Future<double> prediction(String text, String link, String msg) async {
+    predic = 0;
+    double score = 0;
+    // linkscore = 1; //test
+    // print("linkscore : $linkscore");
+    if (text == "Text" && link.isNotEmpty) {
+      score = linkscore * 100;
+      predic = 0;
+      model = "link";
+      // print("Predic 1: $text || $model || $linkscore || Total predic: $score");
+    } else if (text.toString().isNotEmpty && link.isEmpty) {
+      model = await selectModels(msg);
+      if (model == "english") {
+        predic = await _classifier.classify(
+            tokenize, "en_ta_gru_w2v.tflite", 'en_ta_w2v_vocab.txt', 79);
+        score = (predic! * 100);
+        // print("Predic 2: $text || $model || $linkscore || Total predic: $score");
+      }
+      if (model == "thai") {
+        predic = await _classifier.classify(
+            tokenize, "th_lstm_grid.tflite", 'thai_vocab.txt', 109);
+        score = predic! * 100;
+        // print("Predic 3: $text || $model || $linkscore || Total predic: $score");
+      }
+    } else if (text.toString().isNotEmpty && link.isNotEmpty) {
+      model = await selectModels(msg);
+      if (model == "english") {
+        predic = await _classifier.classify(
+            tokenize, "en_ta_gru_w2v.tflite", 'en_ta_w2v_vocab.txt', 79);
+        score = (predic! * 50) + (linkscore * 50);
+        // print("Predic 4: $text || $model || $linkscore || Total predic: $score");
+      }
+      if (model == "thai") {
+        predic = await _classifier.classify(
+            tokenize, "th_lstm_grid.tflite", 'thai_vocab.txt', 109);
+        score = (predic! * 50) + (linkscore * 50);
+        // print("Predic 5: $text || $model || $linkscore || Total predic: $score");
+      }
+    }
+    return score;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-          backgroundColor: mainScreen,
-          centerTitle: true,
-          leading: IconButton(
-              icon: const Icon(Icons.density_medium /*Icons.dehaze*/,
-                  color: Colors.white),
-              onPressed: () {
-                if (_scaffoldkey.currentState?.isDrawerOpen == false) {
-                  _scaffoldkey.currentState?.openDrawer();
-                } else {
-                  _scaffoldkey.currentState?.openEndDrawer();
-                }
-              }),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.search, color: Colors.white),
-              onPressed: () {},
-            )
-          ]),
-      body: Scaffold(
-          backgroundColor: bgYellow,
-          key: _scaffoldkey,
-          drawer: navBar(),
-          body: SingleChildScrollView(
-            child: Container(
-              margin: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Container(
-                    constraints: const BoxConstraints.expand(height: 50),
-                    decoration: ShapeDecoration(
-                        color: const Color(0xFFF7F7F9),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(5))),
-                    child: AdvancedSegment(
-                      controller: _selectedSegment,
-                      segments: const {
-                        'all': 'All SMS',
-                        'fraud': 'Fraud SMS',
-                      },
-                      backgroundColor: const Color(0xFFF7F7F9),
-                      activeStyle: const TextStyle(
-                          color: Colors.black, fontWeight: FontWeight.w600),
-                      inactiveStyle: const TextStyle(color: Color(0xFFB2B7BE)),
-                      sliderColor: Colors.white,
-                    ),
-                  ),
-                  SingleChildScrollView(
-                    child: RefreshIndicator(
-                      onRefresh: roadSMSTest,
-                      child: Container(
-                        height: 550,
-                        margin: const EdgeInsets.only(top: 20, bottom: 20),
-                        decoration: ShapeDecoration(
-                            color: Colors.white.withOpacity(0.7),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(21))),
-                        child: ValueListenableBuilder<String>(
-                          valueListenable: _selectedSegment,
-                          builder: (_, key, __) {
-                            switch (key) {
-                              case 'all':
-                                return allSMS(_messages);
-                              case 'fraud':
-                                return fraudSMS(_messages);
-                              default:
-                                return const SizedBox();
-                            }
-                          },
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        final difference = DateTime.now().difference(timeBackPressed);
+        final isExitWarning = difference >= const Duration(seconds: 2);
+        timeBackPressed = DateTime.now();
+        if (isExitWarning) {
+          const message = 'Press back again to exit';
+          showToast(message,
+              // ignore: use_build_context_synchronously
+              context: context,
+              animation: StyledToastAnimation.fade,
+              reverseAnimation: StyledToastAnimation.fade,
+              curve: Curves.linear,
+              reverseCurve: Curves.linear);
+        } else {
+          // Navigator.of(context).pop();
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+          appBar: AppBar(
+              backgroundColor: mainScreen,
+              centerTitle: true,
+              leading: IconButton(
+                  icon: const Icon(Icons.density_medium /*Icons.dehaze*/,
+                      color: Colors.white),
+                  onPressed: () {
+                    if (_scaffoldkey.currentState?.isDrawerOpen == false) {
+                      _scaffoldkey.currentState?.openDrawer();
+                    } else {
+                      _scaffoldkey.currentState?.openEndDrawer();
+                    }
+                  }),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.search, color: Colors.white),
+                  onPressed: () {},
+                )
+              ]),
+          body: Scaffold(
+              backgroundColor: bgYellow,
+              key: _scaffoldkey,
+              drawer: navBar(),
+              body: SingleChildScrollView(
+                  child: Container(
+                      margin: const EdgeInsets.all(20),
+                      child: Column(children: [
+                        Container(
+                          constraints: const BoxConstraints.expand(height: 50),
+                          decoration: ShapeDecoration(
+                              color: const Color(0xFFF7F7F9),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(5))),
+                          child: AdvancedSegment(
+                            controller: _selectedSegment,
+                            segments: const {
+                              'all': 'All SMS',
+                              'fraud': 'Fraud SMS',
+                            },
+                            backgroundColor: const Color(0xFFF7F7F9),
+                            activeStyle: const TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.w600),
+                            inactiveStyle:
+                                const TextStyle(color: Color(0xFFB2B7BE)),
+                            sliderColor: Colors.white,
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          )),
+                        SingleChildScrollView(
+                            child: RefreshIndicator(
+                                onRefresh: reload,
+                                child: Container(
+                                    height: 550,
+                                    margin: const EdgeInsets.only(
+                                        top: 20, bottom: 20),
+                                    decoration: ShapeDecoration(
+                                        color: Colors.white.withOpacity(0.7),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(21))),
+                                    child: ValueListenableBuilder<String>(
+                                        valueListenable: _selectedSegment,
+                                        builder: (_, key, __) {
+                                          switch (key) {
+                                            case 'all':
+                                              return allSMS(_messages);
+                                            case 'fraud':
+                                              return fraudSMS(_messages);
+                                            default:
+                                              return const SizedBox();
+                                          }
+                                        }))))
+                      ]))))),
     );
   }
 
   Widget allSMS(List<SmsMessage> messages) {
-    if (_messages.isEmpty) {
-      return Stack(
-        children: [
-          ListView(),
-          const Center(
-            child: Text("No message", style: TextStyle(fontFamily: "Kanit")),
-          )
-        ],
+    if (_messages.isEmpty && messageModels.isEmpty) {
+      return Stack(children: [
+        ListView(),
+        const Center(
+            child: Text("No message", style: TextStyle(fontFamily: "Kanit")))
+      ]);
+    }
+    if (messageModels.isNotEmpty) {
+      debugPrint("มีข้อมูล: ${messageModels.length} คน");
+      return ListView.builder(
+        shrinkWrap: true,
+        itemCount: messageModels.length,
+        itemBuilder: (context, index) {
+          var count = messageModels[index].messages.length - 1;
+          return ListTile(
+            // tileColor: message.isRead == false ? const Color(0xFFCDE9FF) : null,
+            title: Text(messageModels[index].name,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text(messageModels[index].messages[0].body,
+                style: const TextStyle(fontFamily: "Kanit"),
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+                maxLines: 1),
+            leading: Stack(children: [
+              Container(
+                  height: 50,
+                  width: 50,
+                  decoration: ShapeDecoration(
+                      color: const Color(0xFFCB9696),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(100))),
+                  child: messageModels[index].photo.isNotEmpty
+                      ? ClipOval(
+                          child: Image.memory(
+                            Uint8List.fromList(messageModels[index].photo),
+                            fit: BoxFit.contain,
+                          ),
+                        )
+                      : Image.asset(
+                          "assets/images/profile.png",
+                          fit: BoxFit.fitWidth,
+                        )),
+              Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: messageModels[index].messages[0].state == 0
+                      ? Container()
+                      : Container(
+                          width: 20,
+                          height: 20,
+                          decoration: ShapeDecoration(
+                              color:
+                                  messageModels[index].messages[count].state ==
+                                          1
+                                      ? const Color(0xFFFCE205)
+                                      : const Color(0xFFFF2F00),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(100))),
+                          child: const Center(
+                              child: Icon(
+                                  color: Colors.white,
+                                  Icons.priority_high,
+                                  size: 18))))
+            ]),
+            onTap: () {
+              Navigator.pushReplacement(
+                  context,
+                  CupertinoPageRoute(
+                      builder: (context) => ShowMsg(
+                            messageModel: messageModels[index],
+                            listMessage: messageModels,
+                          )));
+            },
+          );
+        },
       );
     }
     return FutureBuilder(
@@ -580,21 +672,16 @@ class _AllsmsState extends State<Allsms> {
           return Container(
               alignment: Alignment.center,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    "loading...",
-                    style: TextStyle(fontFamily: "Kanit", fontSize: 15),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation(mainScreen),
-                    ),
-                  ),
-                ],
-              ));
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text("loading...",
+                        style: TextStyle(fontFamily: "Kanit", fontSize: 15)),
+                    Container(
+                        padding: const EdgeInsets.all(10),
+                        child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation(mainScreen)))
+                  ]));
         }
         return ListView.builder(
           shrinkWrap: true,
@@ -655,10 +742,10 @@ class _AllsmsState extends State<Allsms> {
               onTap: () {
                 Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(
+                    CupertinoPageRoute(
                         builder: (context) => ShowMsg(
-                              messages: messageModels[index].messages,
-                              name: messageModels[index].name,
+                              messageModel: messageModels[index],
+                              listMessage: messageModels,
                             )));
               },
             );
@@ -669,7 +756,7 @@ class _AllsmsState extends State<Allsms> {
   }
 
   Widget fraudSMS(List<SmsMessage> messages) {
-    if (_messages.isEmpty) {
+    if (_messages.isEmpty && messageModels.isEmpty) {
       return Stack(
         children: [
           ListView(),
@@ -677,6 +764,80 @@ class _AllsmsState extends State<Allsms> {
             child: Text("No message", style: TextStyle(fontFamily: "Kanit")),
           )
         ],
+      );
+    }
+    if (messageModels.isNotEmpty) {
+      return ListView.builder(
+        shrinkWrap: true,
+        itemCount: messageModels.length,
+        itemBuilder: (context, index) {
+          var count = 0;
+          if (messageModels[index].messages[count].state != 0) {
+            return ListTile(
+              // tileColor: message.isRead == false ? const Color(0xFFCDE9FF) : null,
+              title: Text(messageModels[index].name,
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text(messageModels[index].messages[0].body,
+                  style: const TextStyle(fontFamily: "Kanit"),
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                  maxLines: 1),
+              leading: Stack(children: [
+                Container(
+                    height: 50,
+                    width: 50,
+                    decoration: ShapeDecoration(
+                        color: const Color(0xFFCB9696),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(100))),
+                    child: messageModels[index].photo.isNotEmpty
+                        ? ClipOval(
+                            child: Image.memory(
+                              Uint8List.fromList(messageModels[index].photo),
+                              fit: BoxFit.contain,
+                            ),
+                          )
+                        : Image.asset(
+                            "assets/images/profile.png",
+                            fit: BoxFit.fitWidth,
+                          )),
+                Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: messageModels[index].messages[0].state == 0
+                        ? Container()
+                        : Container(
+                            width: 20,
+                            height: 20,
+                            decoration: ShapeDecoration(
+                                color: messageModels[index]
+                                            .messages[count]
+                                            .state ==
+                                        1
+                                    ? const Color(0xFFFCE205)
+                                    : const Color(0xFFFF2F00),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(100))),
+                            child: const Center(
+                                child: Icon(
+                                    color: Colors.white,
+                                    Icons.priority_high,
+                                    size: 18))))
+              ]),
+              onTap: () {
+                Navigator.pushReplacement(
+                    context,
+                    CupertinoPageRoute(
+                        builder: (context) => ShowMsg(
+                              messageModel: messageModels[index],
+                              listMessage: messageModels,
+                            )));
+              },
+            );
+          } else {
+            return Container();
+          }
+        },
       );
     }
     return FutureBuilder(
@@ -763,10 +924,10 @@ class _AllsmsState extends State<Allsms> {
                 onTap: () {
                   Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(
+                      CupertinoPageRoute(
                           builder: (context) => ShowMsg(
-                                messages: messageModels[index].messages,
-                                name: messageModels[index].name,
+                                messageModel: messageModels[index],
+                                listMessage: messageModels,
                               )));
                 },
               );
@@ -799,43 +960,33 @@ class _AllsmsState extends State<Allsms> {
                   FaIcon(FontAwesomeIcons.envelope, size: 20, color: grayBar),
               title: Text('Message', style: textBar),
               onTap: () {
-                Navigator.pushReplacement(context,
-                    MaterialPageRoute(builder: (context) => const Allsms()));
+                Navigator.pushReplacement(
+                    context,
+                    CupertinoPageRoute(
+                        builder: (context) => Allsms(
+                              listMessage: widget.listMessage,
+                            )));
               }),
-          // ListTile(
-          //     leading:
-          //         FaIcon(FontAwesomeIcons.envelope, size: 20, color: grayBar),
-          //     title: Text('Contacts', style: textBar),
-          //     onTap: () {
-          //       Navigator.pushReplacement(
-          //           context,
-          //           MaterialPageRoute(
-          //               builder: (context) => const ContactsExample()));
-          //     }),
-          // ListTile(
-          //     leading:
-          //         FaIcon(FontAwesomeIcons.envelope, size: 20, color: grayBar),
-          //     title: Text('Test', style: textBar),
-          //     onTap: () {
-          //       Navigator.pushReplacement(context,
-          //           MaterialPageRoute(builder: (context) => const MyApp()));
-          //     }),
           ListTile(
             leading: FaIcon(UniconsLine.user, size: 20, color: grayBar),
             title: Text('Account', style: textBar),
             onTap: () {
-              Navigator.pushReplacement(context,
-                  MaterialPageRoute(builder: (context) => const AccPage()));
+              Navigator.push(
+                    context,
+                    PageTransition(
+                        type: PageTransitionType.leftToRight,
+                        child: AccPage(listMessage: messageModels)));
             },
           ),
           ListTile(
               leading: FaIcon(UniconsLine.filter, size: 20, color: grayBar),
               title: Text('Messages Filter', style: textBar),
               onTap: () {
-                Navigator.pushReplacement(
+                Navigator.push(
                     context,
-                    MaterialPageRoute(
-                        builder: (context) => const FilterPage()));
+                    PageTransition(
+                        type: PageTransitionType.leftToRight,
+                        child: FilterPage(listMessage: messageModels)));
               }),
           Container(height: 2, color: const Color(0xFFCFCFCF)),
           const Padding(
@@ -849,13 +1000,15 @@ class _AllsmsState extends State<Allsms> {
           ListTile(
             leading: Icon(FeatherIcons.settings, size: 20, color: grayBar),
             title: Text('Settings', style: textBar),
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                    context,
+                    PageTransition(
+                        type: PageTransitionType.leftToRight,
+                        child: SettingPage('',listMessage: messageModels,)));
+            }
           ),
           Container(height: 2, color: const Color(0xFFCFCFCF)),
-          // ListTile(
-          //     leading: Icon(FeatherIcons.helpCircle, size: 20, color: grayBar),
-          //     title: Text('Help', style: textBar),
-          //     onTap: () {}),
           ListTile(
             leading: const Icon(FeatherIcons.logOut,
                 size: 20, color: Color(0xFFD55F5A)),
@@ -875,7 +1028,7 @@ class _AllsmsState extends State<Allsms> {
               print(FirebaseAuth.instance.currentUser!.providerData);
               AuthMethods().signOut(providers);
               Navigator.pushReplacement(context,
-                  MaterialPageRoute(builder: (context) => const LoginPage()));
+                  CupertinoPageRoute(builder: (context) => const LoginPage()));
             },
           ),
         ],

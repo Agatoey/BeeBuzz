@@ -111,7 +111,7 @@ class _OTPreaderState extends State<OTPreader> {
                     Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => const Allsms()));
+                            builder: (context) => Allsms(listMessage: [],)));
                   });
                 } catch (ex) {
                   print("Error : ${ex.toString()}");

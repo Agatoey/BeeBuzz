@@ -1,13 +1,16 @@
 import 'package:appbeebuzz/constant.dart';
+import 'package:appbeebuzz/models/messages_model.dart';
 import 'package:appbeebuzz/pages/allSMS.dart';
 import 'package:appbeebuzz/style.dart';
 import 'package:appbeebuzz/widgets/chip_tag.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:page_transition/page_transition.dart';
 
 class FilterPage extends StatefulWidget {
-  const FilterPage({super.key});
+  const FilterPage({super.key, required this.listMessage});
+  final List<MessageModel> listMessage;
 
   @override
   State<FilterPage> createState() => _FilterPageState();
@@ -28,6 +31,16 @@ class _FilterPageState extends State<FilterPage> {
     _inputController = TextEditingController();
     getList();
     super.initState();
+  }
+
+  void onPressback() {
+    Navigator.push(
+        context,
+        PageTransition(
+            type: PageTransitionType.rightToLeft,
+            child: Allsms(
+              listMessage: widget.listMessage,
+            )));
   }
 
   @override
@@ -52,35 +65,37 @@ class _FilterPageState extends State<FilterPage> {
   @override
   Widget build(BuildContext context) {
     // print(_myList);
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: false,
-        title: Text("Messages Filter", style: textHead),
-        backgroundColor: mainScreen,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pushReplacement(context,
-                MaterialPageRoute(builder: (context) => const Allsms()));
-          },
-        ),
-      ),
-      body: Scaffold(
-        backgroundColor: bgYellow,
-        body: Container(
-          alignment: Alignment.topCenter,
-          // margin: const EdgeInsets.all(20),
-          padding: const EdgeInsets.all(24),
-          child: ChipTags(
-            inputController: _inputController,
-            list: _myList,
-            createTagOnSubmit: false,
-            separator: " ",
-            chipColor: const Color(0xFFFCE205),
-            iconColor: Colors.white,
-            textColor: Colors.white,
-            keyboardType: TextInputType.text,
-            chipPosition: ChipPosition.below,
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        onPressback();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+            centerTitle: false,
+            title: Text("Messages Filter", style: textHead),
+            backgroundColor: mainScreen,
+            leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () {
+                  onPressback();
+                })),
+        body: Scaffold(
+          backgroundColor: bgYellow,
+          body: Container(
+            alignment: Alignment.topCenter,
+            padding: const EdgeInsets.all(24),
+            child: ChipTags(
+              inputController: _inputController,
+              list: _myList,
+              createTagOnSubmit: false,
+              separator: " ",
+              chipColor: const Color(0xFFFCE205),
+              iconColor: Colors.white,
+              textColor: Colors.white,
+              keyboardType: TextInputType.text,
+              chipPosition: ChipPosition.below,
+            ),
           ),
         ),
       ),
