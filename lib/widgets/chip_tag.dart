@@ -71,7 +71,6 @@ class _ChipTagsState extends State<ChipTags>
 
   List<dynamic>? listKeyword;
 
-
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -99,24 +98,20 @@ class _ChipTagsState extends State<ChipTags>
   Widget _info() {
     return const Positioned(
         top: 250,
-        child: Column(
-          children: [
-            Text("Messages Filter",
-                style: TextStyle(
-                    fontFamily: "Inter",
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600)),
-            SizedBox(height: 10),
-            Text(
-              "Filter message out with words you don't want to see",
+        child: Column(children: [
+          Text("Messages Filter",
+              style: TextStyle(
+                  fontFamily: "Inter",
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600)),
+          SizedBox(height: 10),
+          Text("Filter message out with words you don't want to see",
               style: TextStyle(
                   fontFamily: "Kanit",
                   color: Color(0xFF636363),
                   fontSize: 14,
-                  fontWeight: FontWeight.w400),
-            ),
-          ],
-        ));
+                  fontWeight: FontWeight.w400))
+        ]));
   }
 
   Widget _info2() {
@@ -124,33 +119,28 @@ class _ChipTagsState extends State<ChipTags>
         top: 250,
         child: Row(
           children: [
-            const Text(
-              "Press",
-              style: TextStyle(
-                  fontFamily: "Inter",
-                  color: Color(0xFF636363),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400),
-            ),
-            Container(
-              alignment: Alignment.center,
-              margin: const EdgeInsets.symmetric(horizontal: 5),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.expand(height: 25, width: 25),
-              decoration: ShapeDecoration(
-                  color: const Color(0xB951D968),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(9))),
-              child: Text(
-                String.fromCharCode(Icons.check.codePoint),
+            const Text("Press",
                 style: TextStyle(
-                  inherit: false,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: Icons.check.fontFamily,
-                ),
-              ),
-            ),
+                    fontFamily: "Inter",
+                    color: Color(0xFF636363),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400)),
+            Container(
+                alignment: Alignment.center,
+                margin: const EdgeInsets.symmetric(horizontal: 5),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.expand(height: 25, width: 25),
+                decoration: ShapeDecoration(
+                    color: const Color(0xB951D968),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(9))),
+                child: Text(String.fromCharCode(Icons.check.codePoint),
+                    style: TextStyle(
+                      inherit: false,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: Icons.check.fontFamily,
+                    ))),
             const Text(
               "to add keyword",
               style: TextStyle(

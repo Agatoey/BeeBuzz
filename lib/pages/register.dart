@@ -6,9 +6,9 @@ import 'package:appbeebuzz/utils/auth_methods.dart';
 import 'package:appbeebuzz/widgets/inputFormField.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart' as q;
 import 'package:flutter/material.dart';
 import 'package:flutter_advanced_segment/flutter_advanced_segment.dart';
+import 'package:flutter_styled_toast/flutter_styled_toast.dart';
 
 class Register extends StatefulWidget {
   const Register({super.key});
@@ -72,45 +72,43 @@ class _RegisterState extends State<Register> {
                     padding: const EdgeInsets.all(24),
                     child: Column(children: [
                       Container(
-                        constraints: const BoxConstraints.expand(height: 40),
-                        margin: const EdgeInsets.only(top: 12),
-                        decoration: ShapeDecoration(
-                            color: const Color(0xFFF7F7F9),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(5))),
-                        child: AdvancedSegment(
-                          controller: _selectedSegment,
-                          segments: const {
-                            'email': 'Email',
-                            'phonenumber': 'Phone Number',
-                          },
-                          backgroundColor: const Color(0xFFF7F7F9),
-                          activeStyle: const TextStyle(
-                              color: Colors.black, fontWeight: FontWeight.w600),
-                          inactiveStyle:
-                              const TextStyle(color: Color(0xFFB2B7BE)),
-                          sliderColor: Colors.white,
-                        ),
-                      ),
+                          constraints: const BoxConstraints.expand(height: 40),
+                          margin: const EdgeInsets.only(top: 12),
+                          decoration: ShapeDecoration(
+                              color: const Color(0xFFF7F7F9),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(5))),
+                          child: AdvancedSegment(
+                            controller: _selectedSegment,
+                            segments: const {
+                              'email': 'Email',
+                              'phonenumber': 'Phone Number',
+                            },
+                            backgroundColor: const Color(0xFFF7F7F9),
+                            activeStyle: const TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.w600),
+                            inactiveStyle:
+                                const TextStyle(color: Color(0xFFB2B7BE)),
+                            sliderColor: Colors.white,
+                          )),
                       Container(
-                        decoration: ShapeDecoration(
-                            color: Colors.white.withOpacity(0.7),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(21))),
-                        child: ValueListenableBuilder<String>(
-                          valueListenable: _selectedSegment,
-                          builder: (_, key, __) {
-                            switch (key) {
-                              case 'email':
-                                return email();
-                              case 'phonenumber':
-                                return phoneNumber();
-                              default:
-                                return const SizedBox();
-                            }
-                          },
-                        ),
-                      ),
+                          decoration: ShapeDecoration(
+                              color: Colors.white.withOpacity(0.7),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(21))),
+                          child: ValueListenableBuilder<String>(
+                              valueListenable: _selectedSegment,
+                              builder: (_, key, __) {
+                                switch (key) {
+                                  case 'email':
+                                    return email();
+                                  case 'phonenumber':
+                                    return phoneNumber();
+                                  default:
+                                    return const SizedBox();
+                                }
+                              }))
                     ]))),
           ),
         ));
@@ -148,52 +146,41 @@ class _RegisterState extends State<Register> {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          // phoneOTP(),
           InputFormField(
               textHint: "Phone Number",
               obscure: false,
               type: "phone",
               controller: phoneNumberController),
           buildButtonVerification(),
-          // buildTextFieldPassword(),
-          // buildTextFieldPasswordConfirm(),
-          // buildButtonLogin("phone"),
         ],
       ),
     );
   }
 
   Widget phoneOTP() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        InputFormField(
-            textHint: "Phone Number",
-            obscure: false,
-            type: "phone",
-            controller: phoneNumberController),
-        Container(
-            margin: const EdgeInsets.only(top: 5),
-            decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16), color: mainScreen),
-            child: TextButton(
+    return Row(mainAxisAlignment: MainAxisAlignment.start, children: [
+      InputFormField(
+          textHint: "Phone Number",
+          obscure: false,
+          type: "phone",
+          controller: phoneNumberController),
+      Container(
+          margin: const EdgeInsets.only(top: 5),
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16), color: mainScreen),
+          child: TextButton(
               onPressed: () async {},
               child: const Center(
-                child: Text(
-                  "Sign up",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xFFF7F7F9),
-                    fontSize: 20,
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    height: 0.17,
-                  ),
-                ),
-              ),
-            ))
-      ],
-    );
+                  child: Text("Sign up",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFFF7F7F9),
+                        fontSize: 20,
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                        height: 0.17,
+                      )))))
+    ]);
   }
 
   Widget buildTextFieldPassword() {
@@ -297,66 +284,56 @@ class _RegisterState extends State<Register> {
 
   Widget buildButtonVerification() {
     return Container(
-      margin: const EdgeInsets.only(top: 12),
-      constraints: const BoxConstraints.expand(height: 50),
-      decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16), color: mainScreen),
-      child: TextButton(
-        onPressed: () {
-          _phoneformKey.currentState?.validate();
-          phoneAuth();
-        },
-        child: const Center(
-          child: Text(
-            "Send OTP",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFFF7F7F9),
-              fontSize: 20,
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              height: 0.17,
-            ),
-          ),
-        ),
-      ),
-    );
+        margin: const EdgeInsets.only(top: 12),
+        constraints: const BoxConstraints.expand(height: 50),
+        decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16), color: mainScreen),
+        child: TextButton(
+            onPressed: () {
+              _phoneformKey.currentState?.validate();
+              phoneAuth();
+            },
+            child: const Center(
+                child: Text("Send OTP",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFFF7F7F9),
+                      fontSize: 20,
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                      height: 0.17,
+                    )))));
   }
 
   Widget buildButtonLogin(String type) {
     return Container(
-      margin: const EdgeInsets.only(top: 12),
-      constraints: const BoxConstraints.expand(height: 50),
-      decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16), color: mainScreen),
-      child: TextButton(
-        onPressed: () async {
-          if (type == "email") {
-            _formKey.currentState?.validate();
-          } else if (type == "phone") {
-            _phoneformKey.currentState?.validate();
-          }
+        margin: const EdgeInsets.only(top: 12),
+        constraints: const BoxConstraints.expand(height: 50),
+        decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16), color: mainScreen),
+        child: TextButton(
+            onPressed: () async {
+              if (type == "email") {
+                _formKey.currentState?.validate();
+              } else if (type == "phone") {
+                _phoneformKey.currentState?.validate();
+              }
 
-          if (passwordController.text == cfpasswordController.text &&
-              passwordController.text.length >= 6) {
-            await createUserWithEmailAndPassword();
-          }
-        },
-        child: const Center(
-          child: Text(
-            "Sign up",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFFF7F7F9),
-              fontSize: 20,
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              height: 0.17,
-            ),
-          ),
-        ),
-      ),
-    );
+              if (passwordController.text == cfpasswordController.text &&
+                  passwordController.text.length >= 6) {
+                await createUserWithEmailAndPassword();
+              }
+            },
+            child: const Center(
+                child: Text("Sign up",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFFF7F7F9),
+                      fontSize: 20,
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                      height: 0.17,
+                    )))));
   }
 
   Future<bool> checkPhoneNumberAlreadyUsed(String phoneNumber) async {
@@ -371,34 +348,27 @@ class _RegisterState extends State<Register> {
     try {
       String phoneNumber = phoneNumberController.text.trim();
       if (phoneNumber.startsWith('0') && phoneNumber.length == 10) {
-        print(phoneNumber.length);
         phoneNumber = '+66${phoneNumber.substring(1)}';
+        debugPrint("1. phoneNumber: $phoneNumber");
       } else if (phoneNumber.startsWith('+66')) {
         if (phoneNumber.startsWith('+660')) {
           if (phoneNumber.length == 13) {
-            print(phoneNumber.length);
             phoneNumber = '+66${phoneNumber.substring(4)}';
+            debugPrint("2. phoneNumber: $phoneNumber");
           } else {
-            errrorText("รูปแบบไม่ถูกต้อง", Colors.red);
+            errrorText("Invalid format.", Colors.red[100]!);
           }
         } else if (phoneNumber.length == 12) {
-          print(phoneNumber.length);
           phoneNumber = phoneNumber;
+          debugPrint("3. phoneNumber: $phoneNumber");
         } else {
-          errrorText("รูปแบบไม่ถูกต้อง", Colors.red);
+          errrorText("Invalid format.", Colors.red[100]!);
         }
       }
-      // else if (phoneNumber.length < 10 ||
-      //     phoneNumber.length > 13 ||
-      //     phoneNumber.length == 11) {
-      //   phoneNumber = "";
-      //   errrorText("รูปแบบไม่ถูกต้อง", Colors.red);
-      // }
 
-      print(phoneNumber);
       bool phoneNumberAlreadyUsed =
           await checkPhoneNumberAlreadyUsed(phoneNumber);
-      print(phoneNumberAlreadyUsed);
+      debugPrint(phoneNumberAlreadyUsed.toString());
       if (phoneNumberAlreadyUsed == false) {
         await _auth.verifyPhoneNumber(
           phoneNumber: phoneNumber,
@@ -421,10 +391,10 @@ class _RegisterState extends State<Register> {
           },
         );
       } else if (phoneNumberAlreadyUsed == true) {
-        errrorText("Phone Number Already in Used", Colors.red);
+        errrorText("Phone Number Already in Used", Colors.red[100]!);
       }
     } on FirebaseAuthException catch (e) {
-      errrorText(e.message.toString(), Colors.red);
+      errrorText(e.message.toString(), Colors.red[100]!);
     }
   }
 
@@ -450,27 +420,34 @@ class _RegisterState extends State<Register> {
         user.user!.updatePhotoURL(
             'https://cdn-icons-png.freepik.com/512/4945/4945750.png');
 
-        errrorText("ลงทะเบียนเสร็จสิ้น", Colors.green);
+        errrorText("Registration complete.", Colors.green[100]!);
         Navigator.pushReplacement(context,
             MaterialPageRoute(builder: (context) => const LoginPage()));
-        print("Sign up user successful ${AuthMethods().authChange.isEmpty}");
+        debugPrint(
+            "Sign up user successful ${AuthMethods().authChange.isEmpty}");
       }).catchError((error) {
-        // errrorText("กรุณากรอกข้อมูลให้ครบ", Colors.red);
         if (error.message ==
             "The email address is already in use by another account.") {
-          print("Email ถูกใช้ไปแล้ว");
-          errrorText(error.message, Colors.red);
+          errrorText("The email address is already in use by another account.",
+              Colors.red[100]!);
         }
-
-        print("Error : ${error.message}");
+        if (error.message == "The email address is badly formatted.") {
+          errrorText("The email address is badly formatted.", Colors.red[100]!);
+        }
+        debugPrint("Error : ${error.message}");
       });
     }
   }
 
   errrorText(String errortext, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(errortext, style: const TextStyle(color: Colors.white)),
-      backgroundColor: color,
-    ));
+    showToast(errortext,
+        // ignore: use_build_context_synchronously
+        context: context,
+        textStyle: const TextStyle(color: Colors.black),
+        backgroundColor: color,
+        animation: StyledToastAnimation.fade,
+        reverseAnimation: StyledToastAnimation.fade,
+        curve: Curves.linear,
+        reverseCurve: Curves.linear);
   }
 }

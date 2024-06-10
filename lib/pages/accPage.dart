@@ -12,8 +12,9 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:page_transition/page_transition.dart';
 
 class AccPage extends StatefulWidget {
-  const AccPage({super.key, required this.listMessage});
+  const AccPage({super.key, required this.listMessage, required this.filterTexts});
   final List<MessageModel> listMessage;
+  final List<dynamic>? filterTexts;
 
   @override
   State<AccPage> createState() => _AccPageState();
@@ -56,6 +57,7 @@ class _AccPageState extends State<AccPage> {
             type: PageTransitionType.rightToLeft,
             child: Allsms(
               listMessage: widget.listMessage,
+              filterTexts: widget.filterTexts,
             )));
   }
 
@@ -199,7 +201,7 @@ class _AccPageState extends State<AccPage> {
                 Padding(
                     padding: EdgeInsets.only(top: 10),
                     child: Center(
-                      child: Text('ยืนยันการลบบัญชีหรือไม่',
+                      child: Text('Confirm account deletion?',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                               color: Color(0xFF7A7A7A),

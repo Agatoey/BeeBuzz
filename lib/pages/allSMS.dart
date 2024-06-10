@@ -1,8 +1,9 @@
 import 'dart:async';
+import 'package:appbeebuzz/main.dart';
 import 'package:appbeebuzz/models/messages_model.dart';
 import 'package:appbeebuzz/pages/accPage.dart';
-import 'package:appbeebuzz/pages/login.dart';
 import 'package:appbeebuzz/pages/filterPage.dart';
+import 'package:appbeebuzz/pages/login.dart';
 import 'package:appbeebuzz/pages/settingPage.dart';
 import 'package:appbeebuzz/pages/showmsg.dart';
 import 'package:appbeebuzz/service/getAPI.dart';
@@ -26,10 +27,11 @@ import 'package:flutter_feather_icons/flutter_feather_icons.dart';
 import 'package:flutter_advanced_segment/flutter_advanced_segment.dart';
 
 class Allsms extends StatefulWidget {
-  Allsms({super.key, required this.listMessage});
+  Allsms({super.key, required this.listMessage, required this.filterTexts});
 
   static const String routeName = '/Allsms';
   List<MessageModel> listMessage;
+  late final List<dynamic>? filterTexts;
 
   @override
   State<Allsms> createState() => _AllsmsState();
@@ -49,6 +51,7 @@ class _AllsmsState extends State<Allsms> {
   late String? model;
 
   List<dynamic>? filterTexts;
+  List<dynamic>? filterTextCheck;
   final user = FirebaseAuth.instance.currentUser;
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
@@ -79,56 +82,60 @@ class _AllsmsState extends State<Allsms> {
         .fold(0, (previousValue, element) => previousValue + element);
   }
 
-  bool areBodiesEqual(List<MessageModel> list1, List<SmsMessage> list2) {
-    if (countMessages(list1) != list2.length) {
-      return false;
-    }
+  bool areBodiesEqual(
+      List<MessageModel> list1, Map<String, List> list2, String c) {
     List x = [];
+    List y = [];
+    // print(c);
     for (int i = 0; i < list1.length; i++) {
       for (int j = 0; j < list1[i].messages.length; j++) {
         x.add(list1[i].messages[j].body);
       }
     }
-    for (int i = 0; i < list1.length; i++) {
-      // print("${x[i]} : ${list2[i].body}");
-      if (x[i] != list2[i].body) {
-        return false;
+
+    int count = 0;
+    for (var entry in list2.entries) {
+      var value = entry.value;
+      for (var msg in value) {
+        y.add(msg.body);
+        count += 1;
       }
     }
 
+    if (countMessages(list1) != count) {
+      return false;
+    }
+
+    for (int i = 0; i < list1.length; i++) {
+      if (x[i] != y[i]) {
+        return false;
+      }
+    }
     return true;
   }
 
-  // bool areBodiesEqual2(List<MessageModel> list1, List<MessageModel> list2) {
-  //   if (countMessages(list1) != countMessages(list2)) {
-  //     return false;
-  //   }
+  void printBodies(List<MessageModel> list1, Map<String, List> list2) {
+    for (int i = 0; i < list1.length; i++) {
+      for (int j = 0; j < list1[i].messages.length; j++) {
+        debugPrint('List 1 body: ${list1[i].messages[j].body}');
+      }
+    }
 
-  //   for (int i = 0; i < list1.length; i++) {
-  //     for (int j = 0; j < list1[i].messages.length; j++) {
-  //       if (list1[i].messages[j].body != list2[i].messages[j].body) {
-  //         return false;
-  //       }
-  //     }
-  //   }
-  //   return true;
-  // }
-
-  // void printBodies(List<MessageModel> list1, List<SmsMessage> list2) {
-  //   for (int i = 0; i < list1.length; i++) {
-  //     for (int j = 0; j < list1[i].messages.length; j++) {
-  //       debugPrint('List 1 body: ${list1[i].messages[j].body}');
-  //     }
-  //   }
-  //   for (int i = 0; i < list2.length; i++) {
-  //     debugPrint('List 2 body: ${list2[i].body}');
-  //   }
-  // }
+    for (var entry in list2.entries) {
+      var value = entry.value;
+      for (var msg in value) {
+        debugPrint('List 2 body: ${msg.body}');
+      }
+    }
+  }
 
   List<SmsMessage> testSMS = [];
+  Map<String, List> messagesBySenderCheck = {};
 
   Future reload() async {
+    // await loadSMS();
     testSMS = [];
+    messagesBySenderCheck = {};
     final messages = await _query.querySms(kinds: [
       SmsQueryKind.inbox,
     ], count: 5);
@@ -136,12 +143,40 @@ class _AllsmsState extends State<Allsms> {
       testSMS = messages;
     });
 
-    var count1 = areBodiesEqual(widget.listMessage, testSMS);
-    var count2 = areBodiesEqual(messageModels, testSMS);
-    // printBodies(messageModels, testSMS);
+    await getListFilter();
+
+    if (filterTexts!.isNotEmpty) {
+      testSMS.removeWhere((message) {
+        for (var textFilter in filterTexts!) {
+          if (message.body!.toLowerCase().contains(textFilter.toLowerCase())) {
+            return true;
+          }
+        }
+        return false;
+      });
+    } else if (filterTexts == null) {
+      return testSMS;
+    }
+
+    for (var message in testSMS) {
+      if (!messagesBySenderCheck.containsKey(message.sender)) {
+        messagesBySenderCheck[message.sender.toString()] = [];
+      }
+      setState(() {
+        messagesBySenderCheck[message.sender]?.add(message);
+      });
+    }
+
+    var count1 =
+        areBodiesEqual(widget.listMessage, messagesBySenderCheck, "count1");
+    printBodies(widget.listMessage, messagesBySenderCheck);
+
     debugPrint(
-        "จำนวน ${countMessages(widget.listMessage)} ${testSMS.length} : $count1 : $count2");
-    if (count1 == false || count2 == false || messageModels.isEmpty) {
+        "จำนวน ${countMessages(widget.listMessage)} ${testSMS.length} : $count1");
+    if (count1 == false ||
+        // count2 == false ||
+        messageModels.isEmpty ||
+        widget.listMessage.isEmpty) {
       loadSMS();
       getJson();
       debugPrint("โหลดใหม่");
@@ -210,6 +245,7 @@ class _AllsmsState extends State<Allsms> {
       }
     }
   }
+  String? textstate;
 
   getJson() async {
     late String link;
@@ -240,6 +276,7 @@ class _AllsmsState extends State<Allsms> {
             text = msg.body;
             type = "Unkown";
             linkscore = 0;
+            textstate = "safe";
           }
           if (text.isEmpty) {
             text = "";
@@ -264,8 +301,7 @@ class _AllsmsState extends State<Allsms> {
             state = 2;
           }
 
-          debugPrint(
-              "Model : $score | $predic | $link | $type | $linkscore | $state | $model");
+          debugPrint("Model : $model | $predic Link : $textstate | $linkscore Totalscore : $score");
 
           var samename = messageModels
               .indexWhere((model) => model.name == contacts.first.displayName);
@@ -318,6 +354,7 @@ class _AllsmsState extends State<Allsms> {
             text = msg.body;
             type = "Unkown";
             linkscore = 0;
+            textstate = "safe";
           }
           if (text.isEmpty) {
             text = "";
@@ -344,8 +381,7 @@ class _AllsmsState extends State<Allsms> {
             state = 2;
           }
 
-          debugPrint(
-              "Model : $score | $predic | $link | $type | $linkscore | $state | $model");
+          debugPrint("Model : $model | $predic Link : $textstate | $linkscore Totalscore : $score");
 
           var samename = messageModels.indexWhere((model) => model.name == key);
           if (samename != -1) {
@@ -378,17 +414,10 @@ class _AllsmsState extends State<Allsms> {
         }
       }
     }
-    // Print the result
-    // JsonEncoder encoder = const JsonEncoder.withIndent('  ');
-    // String prettyprint = encoder.convert(messageModels);
-    // // debugPrint(prettyprint);
-    // print(jsonEncode("Messages ${prettyprint}"));
-    // for (var element in messageModels) {
-    //   debugPrint(element.messages.first.body);
-    // }
 
     setState(() {
       widget.listMessage = messageModels;
+      // widget.filterTexts = filterTexts;
     });
     for (var element in widget.listMessage) {
       debugPrint(element.messages.first.body);
@@ -411,7 +440,7 @@ class _AllsmsState extends State<Allsms> {
       Map<String, dynamic> x;
 
       x = res?.attributes["last_analysis_stats"];
-      debugPrint("last_analysis_stats : $x");
+      // debugPrint("last_analysis_stats : $x");
 
       int maxMalicious = x['malicious'] ?? 0;
       int maxSuspicious = x['suspicious'] ?? 0;
@@ -427,22 +456,27 @@ class _AllsmsState extends State<Allsms> {
 
       if (maxMalicious > maxSuspicious) {
         linkscore = 1;
+        textstate = "malicious";
       } else if (maxMalicious < maxSuspicious) {
         linkscore = 0.5;
+        textstate = "suspicious";
       } else if (maxMalicious == maxSuspicious) {
         linkscore = 1;
+        textstate = "malicious";
         if (maxMalicious == 0 && maxSuspicious == 0) {
           linkscore = 0;
+          textstate = "safe";
         }
       }
     } else if (res?.attributes["last_analysis_stats"] == null) {
       linkscore = 0;
+      textstate = "safe";
     }
 
     type = res?.attributes["categories"]["Webroot"];
     type ??= res?.attributes["categories"]["Forcepoint ThreatSeeker"];
     type ??= "Unkown";
-    debugPrint("last_analysis_stats : $type");
+    // debugPrint("last_analysis_stats : $type");
   }
 
   double? predic;
@@ -512,24 +546,25 @@ class _AllsmsState extends State<Allsms> {
       },
       child: Scaffold(
           appBar: AppBar(
-              backgroundColor: mainScreen,
-              centerTitle: true,
-              leading: IconButton(
-                  icon: const Icon(Icons.density_medium /*Icons.dehaze*/,
-                      color: Colors.white),
-                  onPressed: () {
-                    if (_scaffoldkey.currentState?.isDrawerOpen == false) {
-                      _scaffoldkey.currentState?.openDrawer();
-                    } else {
-                      _scaffoldkey.currentState?.openEndDrawer();
-                    }
-                  }),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.search, color: Colors.white),
-                  onPressed: () {},
-                )
-              ]),
+            backgroundColor: mainScreen,
+            centerTitle: true,
+            leading: IconButton(
+                icon: const Icon(Icons.density_medium /*Icons.dehaze*/,
+                    color: Colors.white),
+                onPressed: () {
+                  if (_scaffoldkey.currentState?.isDrawerOpen == false) {
+                    _scaffoldkey.currentState?.openDrawer();
+                  } else {
+                    _scaffoldkey.currentState?.openEndDrawer();
+                  }
+                }),
+            // actions: [
+            //   IconButton(
+            //     icon: const Icon(Icons.search, color: Colors.white),
+            //     onPressed: () {},
+            //   )
+            // ]
+          ),
           body: Scaffold(
               backgroundColor: bgYellow,
               key: _scaffoldkey,
@@ -622,10 +657,8 @@ class _AllsmsState extends State<Allsms> {
                   child: messageModels[index].photo.isNotEmpty
                       ? ClipOval(
                           child: Image.memory(
-                            Uint8List.fromList(messageModels[index].photo),
-                            fit: BoxFit.contain,
-                          ),
-                        )
+                              Uint8List.fromList(messageModels[index].photo),
+                              fit: BoxFit.contain))
                       : Image.asset(
                           "assets/images/profile.png",
                           fit: BoxFit.fitWidth,
@@ -639,11 +672,9 @@ class _AllsmsState extends State<Allsms> {
                           width: 20,
                           height: 20,
                           decoration: ShapeDecoration(
-                              color:
-                                  messageModels[index].messages[count].state ==
-                                          1
-                                      ? const Color(0xFFFCE205)
-                                      : const Color(0xFFFF2F00),
+                              color: messageModels[index].messages[0].state == 1
+                                  ? const Color(0xFFFCE205)
+                                  : const Color(0xFFFF2F00),
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(100))),
                           child: const Center(
@@ -659,6 +690,7 @@ class _AllsmsState extends State<Allsms> {
                       builder: (context) => ShowMsg(
                             messageModel: messageModels[index],
                             listMessage: messageModels,
+                            filterTexts: filterTexts,
                           )));
             },
           );
@@ -687,7 +719,7 @@ class _AllsmsState extends State<Allsms> {
           shrinkWrap: true,
           itemCount: messageModels.length,
           itemBuilder: (context, index) {
-            var count = messageModels[index].messages.length - 1;
+            var count = messageModels[index].messages.length;
             return ListTile(
               // tileColor: message.isRead == false ? const Color(0xFFCDE9FF) : null,
               title: Text(messageModels[index].name,
@@ -746,6 +778,7 @@ class _AllsmsState extends State<Allsms> {
                         builder: (context) => ShowMsg(
                               messageModel: messageModels[index],
                               listMessage: messageModels,
+                              filterTexts: filterTexts,
                             )));
               },
             );
@@ -831,6 +864,7 @@ class _AllsmsState extends State<Allsms> {
                         builder: (context) => ShowMsg(
                               messageModel: messageModels[index],
                               listMessage: messageModels,
+                              filterTexts: filterTexts,
                             )));
               },
             );
@@ -928,6 +962,7 @@ class _AllsmsState extends State<Allsms> {
                           builder: (context) => ShowMsg(
                                 messageModel: messageModels[index],
                                 listMessage: messageModels,
+                                filterTexts: filterTexts,
                               )));
                 },
               );
@@ -942,10 +977,8 @@ class _AllsmsState extends State<Allsms> {
 
   Widget navBar() {
     return Drawer(
-      backgroundColor: Colors.white,
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
+        backgroundColor: Colors.white,
+        child: ListView(padding: EdgeInsets.zero, children: [
           const Padding(
             padding: EdgeInsets.all(16.0),
             child: Text('Manu',
@@ -965,6 +998,7 @@ class _AllsmsState extends State<Allsms> {
                     CupertinoPageRoute(
                         builder: (context) => Allsms(
                               listMessage: widget.listMessage,
+                              filterTexts: filterTexts,
                             )));
               }),
           ListTile(
@@ -972,10 +1006,13 @@ class _AllsmsState extends State<Allsms> {
             title: Text('Account', style: textBar),
             onTap: () {
               Navigator.push(
-                    context,
-                    PageTransition(
-                        type: PageTransitionType.leftToRight,
-                        child: AccPage(listMessage: messageModels)));
+                  context,
+                  PageTransition(
+                      type: PageTransitionType.leftToRight,
+                      child: AccPage(
+                        listMessage: messageModels,
+                        filterTexts: filterTexts,
+                      )));
             },
           ),
           ListTile(
@@ -986,7 +1023,10 @@ class _AllsmsState extends State<Allsms> {
                     context,
                     PageTransition(
                         type: PageTransitionType.leftToRight,
-                        child: FilterPage(listMessage: messageModels)));
+                        child: FilterPage(
+                          listMessage: messageModels,
+                          filterTexts: filterTexts,
+                        )));
               }),
           Container(height: 2, color: const Color(0xFFCFCFCF)),
           const Padding(
@@ -998,41 +1038,134 @@ class _AllsmsState extends State<Allsms> {
                       fontSize: 14,
                       fontFamily: 'Inter'))),
           ListTile(
-            leading: Icon(FeatherIcons.settings, size: 20, color: grayBar),
-            title: Text('Settings', style: textBar),
-            onTap: () {
-              Navigator.push(
+              leading: Icon(FeatherIcons.settings, size: 20, color: grayBar),
+              title: Text('Settings', style: textBar),
+              onTap: () {
+                Navigator.push(
                     context,
                     PageTransition(
                         type: PageTransitionType.leftToRight,
-                        child: SettingPage('',listMessage: messageModels,)));
-            }
-          ),
+                        child: SettingPage(
+                          '',
+                          listMessage: messageModels,
+                        )));
+              }),
           Container(height: 2, color: const Color(0xFFCFCFCF)),
           ListTile(
-            leading: const Icon(FeatherIcons.logOut,
-                size: 20, color: Color(0xFFD55F5A)),
-            title: const Text(
-              'Logout',
-              style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFFD55F5A),
-                  fontSize: 18,
-                  fontFamily: 'Inter',
-                  height: 0.10,
-                  letterSpacing: -0.28),
+              leading: const Icon(FeatherIcons.logOut,
+                  size: 20, color: Color(0xFFD55F5A)),
+              title: const Text(
+                'Logout',
+                style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFFD55F5A),
+                    fontSize: 18,
+                    fontFamily: 'Inter',
+                    height: 0.10,
+                    letterSpacing: -0.28),
+              ),
+              onTap: () async {
+                _showAlertDialog();
+              })
+        ]));
+  }
+
+  Future<void> _cancelAllNotifications() async {
+    await flutterLocalNotificationsPlugin.cancelAll();
+  }
+
+  Future<void> _showAlertDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return AlertDialog(
+            backgroundColor: const Color(0xFFECECEC),
+            title: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                    padding: EdgeInsets.only(top: 10),
+                    child: Center(
+                      child: Text('Confirm to logout?',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: Color(0xFF7A7A7A),
+                              fontSize: 16,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w400,
+                              height: 0.11)),
+                    )),
+              ],
             ),
-            onTap: () async {
-              final providers =
-                  FirebaseAuth.instance.currentUser!.providerData[0].providerId;
-              print(FirebaseAuth.instance.currentUser!.providerData);
-              AuthMethods().signOut(providers);
-              Navigator.pushReplacement(context,
-                  CupertinoPageRoute(builder: (context) => const LoginPage()));
-            },
-          ),
-        ],
-      ),
+            content: SizedBox(
+                height: 80,
+                width: 250,
+                child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Container(
+                          width: 115,
+                          height: 35,
+                          decoration: ShapeDecoration(
+                              color: const Color(0xFFBABABA),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8))),
+                          child: TextButton(
+                              style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero),
+                              child: const Text('Yes',
+                                  style: TextStyle(
+                                      color: Color(0xFF7A7A7A),
+                                      fontSize: 15,
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w400,
+                                      height: 0.12)),
+                              onPressed: () async {
+                                final providers = FirebaseAuth.instance
+                                    .currentUser!.providerData[0].providerId;
+                                print(FirebaseAuth
+                                    .instance.currentUser!.providerData);
+                                AuthMethods().signOut(providers);
+                                _cancelAllNotifications();
+                                Navigator.pushReplacement(
+                                    context,
+                                    CupertinoPageRoute(
+                                        builder: (context) =>
+                                            const LoginPage()));
+                                showToast("Logout successfuly.",
+                                    // ignore: use_build_context_synchronously
+                                    context: context,
+                                    animation: StyledToastAnimation.fade,
+                                    reverseAnimation: StyledToastAnimation.fade,
+                                    curve: Curves.linear,
+                                    reverseCurve: Curves.linear);
+                              })),
+                      Container(
+                        width: 115,
+                        height: 35,
+                        decoration: ShapeDecoration(
+                            color: const Color(0xFFBABABA),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8))),
+                        child: TextButton(
+                            style:
+                                TextButton.styleFrom(padding: EdgeInsets.zero),
+                            child: const Text('No',
+                                style: TextStyle(
+                                  color: Color(0xFF7A7A7A),
+                                  fontSize: 15,
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w400,
+                                  height: 0.12,
+                                )),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            }),
+                      )
+                    ])),
+            actionsAlignment: MainAxisAlignment.center);
+      },
     );
   }
 }

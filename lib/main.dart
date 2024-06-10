@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:appbeebuzz/constant.dart';
-import 'package:appbeebuzz/pages/allSMS.dart';
-import 'package:appbeebuzz/pages/settingPage.dart';
-import 'package:appbeebuzz/pages/static.dart';
+import 'package:appbeebuzz/pages/staticFromNoti.dart';
 import 'package:appbeebuzz/service/getAPI.dart';
 import 'package:appbeebuzz/utils/classify.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:contacts_service/contacts_service.dart';
 import 'package:easy_sms_receiver/easy_sms_receiver.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -48,16 +47,13 @@ class ReceivedNotification {
 String? selectedNotificationPayload;
 
 const String navigationActionId = 'id_1';
-const String navigationAugActionId = 'id_2';
 
 void notificationTapBackground(NotificationResponse notificationResponse) {
-  // ignore: avoid_print
-  print('notification(${notificationResponse.id}) action tapped: '
+  debugPrint('notification(${notificationResponse.id}) action tapped: '
       '${notificationResponse.actionId} with'
       ' payload: ${notificationResponse.payload}');
   if (notificationResponse.input?.isNotEmpty ?? false) {
-    // ignore: avoid_print
-    print(
+    debugPrint(
         'notification action tapped with input: ${notificationResponse.input}');
   }
 }
@@ -71,25 +67,29 @@ Future<void> initializeService() async {
           onStart: onStart, isForegroundMode: false, autoStart: true));
 }
 
-final FirebaseAuth _auth = FirebaseAuth.instance;
-Stream<User?> get authChange => _auth.authStateChanges();
-
 _MainState _main = _MainState();
-User? user = FirebaseAuth.instance.currentUser;
 
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
-  // DartPluginRegistrant.ensureInitialized();
+  await Firebase.initializeApp();
+  final FirebaseAuth auth = FirebaseAuth.instance;
+  User? user = auth.currentUser;
+  user != null ? debugPrint(user.displayName) : debugPrint("no login");
 
-  final plugin = EasySmsReceiver.instance;
-  plugin.listenIncomingSms(onNewMessage: (message) {
+  if (user != null) {
+    final plugin = EasySmsReceiver.instance;
+    plugin.listenIncomingSms(onNewMessage: (message) async {
+      _main = _MainState();
+      debugPrint("ข้อความ:");
+      debugPrint("::::::Message Address: ${message.address}");
+      debugPrint("::::::Message body: ${message.body}");
+      await _main._showNotification(
+          message.address.toString(), message.body.toString());
+    });
+  } else {
     _main = _MainState();
-    print("ข้อความ:");
-    print("::::::Message Address: ${message.address}");
-    print("::::::Message body: ${message.body}");
-    _main._showNotification(
-        message.address.toString(), message.body.toString());
-  });
+    _main._cancelAllNotifications();
+  }
 }
 
 void main() async {
@@ -105,10 +105,15 @@ void main() async {
       : await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
 
   String initialRoute = Main.routeName;
+
   if (notificationAppLaunchDetails?.didNotificationLaunchApp ?? false) {
     selectedNotificationPayload =
         notificationAppLaunchDetails!.notificationResponse?.payload;
-    initialRoute = Allsms.routeName;
+    initialRoute = ShowstaticFromNoti.routeName;
+    debugPrint("initialRoute: $initialRoute");
+  } else {
+    initialRoute = Main.routeName;
+    debugPrint("initialRoute: $initialRoute");
   }
 
   const AndroidInitializationSettings initializationSettingsAndroid =
@@ -124,8 +129,9 @@ void main() async {
         (NotificationResponse notificationResponse) {
       switch (notificationResponse.notificationResponseType) {
         case NotificationResponseType.selectedNotification:
-          // print("tap");
           selectNotificationStream.add(notificationResponse.payload);
+          print("Tap1");
+          // initialRoute = ShowstaticFromNoti.routeName;
           break;
         case NotificationResponseType.selectedNotificationAction:
           if (notificationResponse.actionId == navigationActionId) {
@@ -136,17 +142,14 @@ void main() async {
     },
     onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
   );
-  user != null ? print(user!.displayName) : print("no login");
-
-  if (user != null) {
-    initializeService();
-  }
 
   runApp(MaterialApp(
+      debugShowCheckedModeBanner: false,
       initialRoute: initialRoute,
       routes: <String, WidgetBuilder>{
-        Main.routeName: (_) => const Main(),
-        Allsms.routeName: (_) => Allsms(listMessage: [])
+        Main.routeName: (_) => Main(),
+        ShowstaticFromNoti.routeName: (_) =>
+            ShowstaticFromNoti(selectedNotificationPayload)
       }));
 }
 
@@ -157,9 +160,16 @@ Future<void> _configureLocalTimeZone() async {
 }
 
 class Main extends StatefulWidget {
-  const Main({super.key});
+  const Main(
+    // this.notificationAppLaunchDetails, 
+    {super.key});
 
   static const String routeName = '/';
+
+  // final NotificationAppLaunchDetails? notificationAppLaunchDetails;
+
+  // bool get didNotificationLaunchApp =>
+  //     notificationAppLaunchDetails?.didNotificationLaunchApp ?? false;
 
   @override
   State<Main> createState() => _MainState();
@@ -168,10 +178,19 @@ class Main extends StatefulWidget {
 class _MainState extends State<Main> {
   bool _notificationsEnabled = false;
 
-  NotificationAppLaunchDetails? notificationAppLaunchDetails;
+  @override
+  void initState() {
+    requestPermission();
+    _requestPermissions();
+    _isAndroidPermissionGranted();
+    _configureSelectNotificationSubject();
+    super.initState();
 
-  bool get didNotificationLaunchApp =>
-      notificationAppLaunchDetails?.didNotificationLaunchApp ?? false;
+    Timer(
+        const Duration(seconds: 4),
+        () => Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (context) => const LoginPage())));
+  }
 
   List<Permission> statuses = [
     Permission.sms,
@@ -222,12 +241,8 @@ class _MainState extends State<Main> {
     }
   }
 
-  // ignore: non_constant_identifier_names
-  String? Address;
-  // ignore: non_constant_identifier_names
-  String? Body;
-
   Future<void> _showNotification(String address, String body) async {
+    // getListFilter([body]);
     await splitText(body);
     String? name;
     var contacts;
@@ -248,20 +263,25 @@ class _MainState extends State<Main> {
     );
     NotificationDetails notificationDetails =
         NotificationDetails(android: androidNotificationDetails);
-    await flutterLocalNotificationsPlugin
-        .show(id++, name, body, notificationDetails, payload: 'item x');
-
-    // Address = address;
-    // print("Address >>> $Address");
+    await flutterLocalNotificationsPlugin.show(
+        id++, name, body, notificationDetails,
+        payload:
+            'name:$name<text>body:$body<text>score:$score<text>linkscore:$linkscore<text>smsscore:$predic<text>type:$type<text>link:$link<text>stste:$state');
   }
 
   void _configureSelectNotificationSubject() {
-    // print("Address2 >>> $Address");
+    print("Notiti");
     selectNotificationStream.stream.listen((String? payload) async {
+      print("payload : $payload");
+      // await Navigator.of(context).pushNamed(ShowstaticFromNoti.routeName, arguments: payload);
       await Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (BuildContext context) => Allsms(listMessage: [],),
+        builder: (BuildContext context) => ShowstaticFromNoti(payload),
       ));
     });
+  }
+
+  Future<void> _cancelAllNotifications() async {
+    await flutterLocalNotificationsPlugin.cancelAll();
   }
 
   double? predic;
@@ -274,6 +294,9 @@ class _MainState extends State<Main> {
   late String link;
   late String text;
   late String largeIcon;
+  late double score;
+  late int state;
+  List<dynamic>? filterTexts;
 
   splitText(String msg) async {
     link = '';
@@ -287,7 +310,6 @@ class _MainState extends State<Main> {
       text = msg.replaceFirst(link, '');
     }
 
-    late double score;
     if (link.isEmpty) {
       link = "";
       text = msg;
@@ -305,14 +327,43 @@ class _MainState extends State<Main> {
     score = await prediction(text, link, msg);
 
     if (score <= 30) {
+      state = 0;
       largeIcon = "greenstate";
     }
     if (score > 31 && score <= 70) {
+      state = 1;
       largeIcon = "yellostate";
     }
     if (score > 71) {
+      state = 2;
       largeIcon = "redstate";
     }
+  }
+
+  Future<String> getListFilter(String msg) async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      List<String> filterTexts = [];
+      CollectionReference users =
+          FirebaseFirestore.instance.collection('users');
+      final snapshot = await users.doc(user.uid).get();
+      final data = snapshot.data() as Map<String, dynamic>;
+      filterTexts = List<String>.from(data['filter']);
+
+      if (filterTexts.isNotEmpty) {
+        List<String> messages = msg.split('\n');
+        messages.removeWhere((message) {
+          for (var textFilter in filterTexts) {
+            if (message.toLowerCase().contains(textFilter.toLowerCase())) {
+              return true;
+            }
+          }
+          return false;
+        });
+        msg = messages.join('\n');
+      }
+    }
+    return msg;
   }
 
   getURLType(String linkbody) async {
@@ -361,8 +412,6 @@ class _MainState extends State<Main> {
     var res = await Data().selectmodel(sms);
     model = res!["model"].toString();
     tokenize = res["sms"].toString();
-    // ignore: avoid_print
-    print(tokenize);
     return model;
   }
 
@@ -412,20 +461,6 @@ class _MainState extends State<Main> {
   }
 
   @override
-  void initState() {
-    requestPermission();
-    _requestPermissions();
-    _isAndroidPermissionGranted();
-    _configureSelectNotificationSubject();
-    super.initState();
-
-    Timer(
-        const Duration(seconds: 3),
-        () => Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (context) => const LoginPage())));
-  }
-
-  @override
   void dispose() {
     didReceiveLocalNotificationStream.close();
     selectNotificationStream.close();
@@ -435,14 +470,13 @@ class _MainState extends State<Main> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-          backgroundColor: mainScreen,
-          body: const Center(
-              child: Center(
-                  child: Image(
-                      image: AssetImage('assets/images/Beebuzz-logos.png'),
-                      height: 68)))),
-    );
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+            backgroundColor: mainScreen,
+            body: const Center(
+                child: Center(
+                    child: Image(
+                        image: AssetImage('assets/images/Beebuzz-logos.png'),
+                        height: 68)))));
   }
 }

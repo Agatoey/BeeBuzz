@@ -8,14 +8,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
-import 'package:pinput/pinput.dart';
 
 class ShowMsg extends StatefulWidget {
   const ShowMsg(
-      {super.key, required this.messageModel, required this.listMessage});
+      {super.key, required this.messageModel, required this.listMessage, required this.filterTexts});
 
   final MessageModel messageModel;
   final List<MessageModel> listMessage;
+  final List<dynamic>? filterTexts;
 
   @override
   State<ShowMsg> createState() => _ShowMsgState();
@@ -40,6 +40,7 @@ class _ShowMsgState extends State<ShowMsg> {
             type: PageTransitionType.leftToRight,
             child: Allsms(
               listMessage: widget.listMessage,
+              filterTexts: widget.filterTexts,
             )));
   }
 
@@ -105,7 +106,7 @@ class _ShowMsgState extends State<ShowMsg> {
                                       child: Text(item.body.toString(),
                                           style: textmsg))),
                               onPressed: () {
-                                print("List: ${widget.listMessage.length}");
+                                // print("List: ${widget.listMessage.length}");
                                 Navigator.pushReplacement(
                                     context,
                                     CupertinoPageRoute(
@@ -115,6 +116,7 @@ class _ShowMsgState extends State<ShowMsg> {
                                               info: item,
                                               messageModel: widget.messageModel,
                                               listMessage: widget.listMessage,
+                                              filterTexts: widget.filterTexts,''
                                             )));
                               },
                             ),
@@ -141,12 +143,21 @@ class _ShowMsgState extends State<ShowMsg> {
                                   Container(
                                       padding: const EdgeInsets.only(left: 10),
                                       child: item.state == 1
-                                          ? Text('ระดับความเสี่ยง : ปานกลาง',
+                                          ? Text('Risk level : Medium',
                                               style: texterroEN)
-                                          : Text('ระดับความเสี่ยง : สูง',
+                                          : Text('Risk level : High',
                                               style: texterroEN))
                                 ]))
-                            : Container(height: 10)
+                            : Container(
+                                padding: const EdgeInsets.only(top: 10),
+                                child: Row(children: [
+                                  Icon(Icons.error,
+                                          size: 17, color: greenState),
+                                  Container(
+                                      padding: const EdgeInsets.only(left: 10),
+                                      child: Text('Risk level : Low',
+                                              style: texterroEN))
+                                ]))
                       ]));
             }));
   }

@@ -1,7 +1,6 @@
 import 'package:appbeebuzz/constant.dart';
-import 'package:appbeebuzz/models/messages_model.dart';
 import 'package:appbeebuzz/models/virus.dart';
-import 'package:appbeebuzz/pages/showmsg.dart';
+import 'package:appbeebuzz/pages/allSMS.dart';
 import 'package:appbeebuzz/style.dart';
 import 'package:arc_progress_bar_new/arc_progress_bar_new.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,33 +9,21 @@ import 'package:dashed_circular_progress_bar/dashed_circular_progress_bar.dart';
 import 'package:flutter_styled_toast/flutter_styled_toast.dart';
 import 'package:page_transition/page_transition.dart';
 
-class Showstatic extends StatefulWidget {
-  const Showstatic(this.payload,
-      {super.key,
-      required this.messages,
-      required this.info,
-      required this.messageModel,
-      required this.listMessage,
-      required this.filterTexts});
+class ShowstaticFromNoti extends StatefulWidget {
+  const ShowstaticFromNoti(this.payload, {super.key});
 
-  final List<Messages> messages;
-  final Messages info;
-  final MessageModel messageModel;
-  final List<MessageModel> listMessage;
   final String? payload;
-  final List<dynamic>? filterTexts;
+  static const String routeName = '/Showstatic';
 
   @override
-  State<Showstatic> createState() => _ShowstaticState();
+  State<ShowstaticFromNoti> createState() => _ShowstaticFromNotiState();
 }
 
-class _ShowstaticState extends State<Showstatic> {
+class _ShowstaticFromNotiState extends State<ShowstaticFromNoti> {
   late double real;
   late double realNew;
 
   late Color colorhandle;
-
-  String? type;
 
   Body? res;
 
@@ -48,42 +35,69 @@ class _ShowstaticState extends State<Showstatic> {
   @override
   void initState() {
     super.initState();
+    splitPayload(widget.payload);
     calculateState();
     linkstate();
   }
 
+  String name = '';
+  String body = '';
+  double score = 0;
+  double linkscore = 0;
+  double smsscore = 0;
+  String type = '';
+  String link = '';
+  int state = 0;
+
+  splitPayload(String? payload) {
+    List<dynamic> parts = payload!.split('<text>');
+
+    name = parts[0].substring(parts[0].indexOf(':') + 1);
+    body = parts[1].substring(parts[1].indexOf(':') + 1);
+    score = double.parse(parts[2].substring(parts[2].indexOf(':') + 1));
+    linkscore = double.parse(parts[3].substring(parts[3].indexOf(':') + 1));
+    smsscore = double.parse(parts[4].substring(parts[4].indexOf(':') + 1));
+    type = parts[5].substring(parts[5].indexOf(':') + 1);
+    link = parts[6].substring(parts[6].indexOf(':') + 1);
+    state = int.parse(parts[7].substring(parts[7].indexOf(':') + 1));
+
+    print('Name: $name');
+    print('Body: $body');
+    print('Score: $score');
+    print('Link Score: $linkscore');
+    print('SMS Score: $smsscore');
+    print('Type: $type');
+    print('Link: $link');
+    print('State: $state');
+  }
+
   void onPressback() {
-    print("List: ${widget.listMessage.length}");
     Navigator.push(
         context,
         PageTransition(
             type: PageTransitionType.leftToRight,
-            child: ShowMsg(
-              messageModel: widget.messageModel,
-              listMessage: widget.listMessage,
-              filterTexts: widget.filterTexts,
-            )));
+            child: Allsms(listMessage: const [],filterTexts: [],)));
   }
 
   calculateState() {
-    if (widget.info.state == 0) {
+    if (state == 0) {
       setState(() {
-        real = widget.info.score * 3.34;
-        realNew = widget.info.score * 0.83;
+        real = score * 3.34;
+        realNew = score * 0.83;
         colorhandle = greenState;
       });
     }
-    if (widget.info.state == 1) {
+    if (state == 1) {
       setState(() {
-        real = (widget.info.score - 30) * 2.5;
-        realNew = (widget.info.score + 10) * 0.83;
+        real = (score - 30) * 2.5;
+        realNew = (score + 10) * 0.83;
         colorhandle = yelloState;
       });
     }
-    if (widget.info.state == 2) {
+    if (state == 2) {
       setState(() {
-        real = (widget.info.score - 70) * 3.34;
-        realNew = (widget.info.score + 20) * 0.83;
+        real = (score - 70) * 3.34;
+        realNew = (score + 20) * 0.83;
         colorhandle = redState;
       });
     }
@@ -99,10 +113,10 @@ class _ShowstaticState extends State<Showstatic> {
   }
 
   linkstate() {
-    if (widget.info.scorelink == 0.5) {
+    if (state == 1) {
       textstate = "suspicious";
     }
-    if (widget.info.scorelink == 1) {
+    if (state == 2) {
       textstate = "malicious";
     }
   }
@@ -110,31 +124,29 @@ class _ShowstaticState extends State<Showstatic> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) {
-        onPressback();
-      },
-      child: PopScope(
         canPop: false,
-        child: Scaffold(
-          backgroundColor: bgYellow,
-          appBar: AppBar(
-              centerTitle: false,
-              title: Text(widget.messageModel.name, style: textHead),
-              backgroundColor: mainScreen,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () {
-                  onPressback();
-                },
-              )),
-          body: body(),
-        ),
-      ),
-    );
+        onPopInvoked: (didPop) {
+          onPressback();
+        },
+        child: PopScope(
+            canPop: false,
+            child: Scaffold(
+              backgroundColor: bgYellow,
+              appBar: AppBar(
+                  centerTitle: false,
+                  title: Text(name, style: textHead),
+                  backgroundColor: mainScreen,
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () {
+                      onPressback();
+                    },
+                  )),
+              body: widgetbody(),
+            )));
   }
 
-  Widget body() {
+  Widget widgetbody() {
     return SingleChildScrollView(
         child: Container(
             padding: const EdgeInsets.all(20),
@@ -216,8 +228,7 @@ class _ShowstaticState extends State<Showstatic> {
                     Positioned(bottom: 80, child: circleState()),
                     Positioned(
                         bottom: 30,
-                        child: Text(
-                            'Risk level : ${widget.info.score.toStringAsFixed(2)}',
+                        child: Text('Risk level : ${score.toStringAsFixed(2)}',
                             style: const TextStyle(
                               color: Color(0xFF83868E),
                               fontSize: 16,
@@ -236,7 +247,7 @@ class _ShowstaticState extends State<Showstatic> {
                   child: Column(children: [
                     Container(
                       padding: const EdgeInsets.all(10),
-                      child: Text(widget.messageModel.name,
+                      child: Text(name,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: Colors.black,
@@ -265,13 +276,11 @@ class _ShowstaticState extends State<Showstatic> {
                         child: Container(
                             padding: const EdgeInsets.all(10),
                             child: Text(
-                              widget.info.body,
+                              body,
                               style: textmsg,
                               textAlign: TextAlign.center,
                             ))),
-                    Visibility(
-                        visible: widget.info.linkbody.isNotEmpty,
-                        child: _linkInfo()),
+                    Visibility(visible: link.isNotEmpty, child: _linkInfo()),
                   ])),
               Container(
                   padding: const EdgeInsets.only(top: 50),
@@ -303,10 +312,10 @@ class _ShowstaticState extends State<Showstatic> {
                                   .doc("${count! + 1}")
                                   .set({
                                 "respone": "yes",
-                                "all_score": widget.info.score,
-                                "score link": widget.info.scorelink,
-                                "score sms": widget.info.scoresms,
-                                "sms": widget.info.body
+                                "all_score": score,
+                                "score link": linkscore,
+                                "score sms": smsscore,
+                                "sms": body
                               });
                               showToast('Thank for your respone.',
                                   // ignore: use_build_context_synchronously
@@ -345,10 +354,10 @@ class _ShowstaticState extends State<Showstatic> {
                                 .doc("${count! + 1}")
                                 .set({
                               "respone": "no",
-                              "all_score": widget.info.score,
-                              "score link": widget.info.scorelink,
-                              "score sms": widget.info.scoresms,
-                              "sms": widget.info.body
+                              "all_score": score,
+                              "score link": linkscore,
+                              "score sms": smsscore,
+                              "sms": body
                             });
                             showToast('Thank for your respone.',
                                 // ignore: use_build_context_synchronously
@@ -374,7 +383,7 @@ class _ShowstaticState extends State<Showstatic> {
   }
 
   Widget _linkInfo() {
-    if (widget.info.scorelink == 0) {
+    if (linkscore == 0) {
       return Column(children: [
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           Container(
@@ -391,7 +400,7 @@ class _ShowstaticState extends State<Showstatic> {
               style: TextStyle(
                   fontFamily: "Inter", fontSize: 13, color: Color(0xFF7A7A7A)))
         ]),
-        Text("Type : ${widget.info.linktype}",
+        Text("Type : ${type}",
             textAlign: TextAlign.center,
             style: const TextStyle(
                 fontFamily: "Inter", fontSize: 13, color: Color(0xFF7A7A7A)))
@@ -413,7 +422,7 @@ class _ShowstaticState extends State<Showstatic> {
             style: const TextStyle(
                 fontFamily: "Inter", fontSize: 13, color: Color(0xFF7A7A7A)))
       ]),
-      Text("Type : ${widget.info.linktype}",
+      Text("Type : ${type}",
           textAlign: TextAlign.center,
           style: const TextStyle(
               fontFamily: "Inter", fontSize: 13, color: Color(0xFF7A7A7A)))

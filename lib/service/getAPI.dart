@@ -1,9 +1,7 @@
 import 'package:appbeebuzz/models/virus.dart';
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-import 'package:json_pretty/json_pretty.dart';
 
 class Data {
   final String xApiToken =
@@ -86,7 +84,7 @@ class Data {
         // print(prettyprint);
         return json;
       } else {
-        print(response.reasonPhrase);
+        // print("Selectmodel ${response.reasonPhrase}");
       }
     } catch (e) {
       print("Error : ${e.toString()}");

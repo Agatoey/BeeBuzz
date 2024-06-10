@@ -9,8 +9,10 @@ import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 
 class FilterPage extends StatefulWidget {
-  const FilterPage({super.key, required this.listMessage});
+  const FilterPage(
+      {super.key, required this.listMessage, required this.filterTexts});
   final List<MessageModel> listMessage;
+  final List<dynamic>? filterTexts;
 
   @override
   State<FilterPage> createState() => _FilterPageState();
@@ -21,7 +23,7 @@ class _FilterPageState extends State<FilterPage> {
   TextEditingController filterController = TextEditingController();
   late TextEditingController _inputController;
 
-  List<dynamic> _myList = [];
+  late List<dynamic> _myList;
 
   final user = FirebaseAuth.instance.currentUser;
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -34,13 +36,25 @@ class _FilterPageState extends State<FilterPage> {
   }
 
   void onPressback() {
-    Navigator.push(
-        context,
-        PageTransition(
-            type: PageTransitionType.rightToLeft,
-            child: Allsms(
-              listMessage: widget.listMessage,
-            )));
+    if (widget.filterTexts.toString() != _myList.toString()) {
+      Navigator.push(
+          context,
+          PageTransition(
+              type: PageTransitionType.rightToLeft,
+              child: Allsms(
+                listMessage: const [],
+                filterTexts: const [],
+              )));
+    } else {
+      Navigator.push(
+          context,
+          PageTransition(
+              type: PageTransitionType.rightToLeft,
+              child: Allsms(
+                listMessage: widget.listMessage,
+                filterTexts: widget.filterTexts,
+              )));
+    }
   }
 
   @override
@@ -64,7 +78,6 @@ class _FilterPageState extends State<FilterPage> {
 
   @override
   Widget build(BuildContext context) {
-    // print(_myList);
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) {
@@ -101,10 +114,4 @@ class _FilterPageState extends State<FilterPage> {
       ),
     );
   }
-
-  // getList(List<String> list){
-  //   setState(() {
-
-  //   });
-  // }
 }

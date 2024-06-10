@@ -63,14 +63,7 @@ class InputFormFieldState extends State<InputFormField> {
               size: 20,
             ),
           )
-        : const SizedBox(
-            width: 5,
-            height: 5,
-            // margin: const EdgeInsets.all(5),
-            // decoration:
-            //     const BoxDecoration(shape: BoxShape.circle, color: Colors.red),
-            // child: const Icon(Icons.done),
-          );
+        : const SizedBox(width: 5, height: 5);
   }
 
   @override
@@ -106,16 +99,16 @@ class InputFormFieldState extends State<InputFormField> {
         validator: (value) {
           if (widget.controller.text.isEmpty) {
             if (widget.type == "email") {
-              return "Please input Email";
+              return "Please enter your email address";
             }
             if (widget.type == "user") {
-              return "Please input User Name";
+              return "Please enter your username.";
             }
             if (widget.type == "phone") {
-              return "Please input Phone Number";
+              return "Please enter phone number";
             }
             if (widget.type == "otp") {
-              return "Please input OTP Code";
+              return "Enter the OTP code sent to your phone.";
             }
           }
 
@@ -192,16 +185,16 @@ class _InputFormFieldPasswordState extends State<InputFormFieldPassword> {
           validator: (value) {
             if (widget.type == "password") {
               if (widget.controller.text.isEmpty) {
-                return "Please Confirm Password";
+                return "Please enter password.";
               } else if (widget.controller.text.length < 6) {
-                return "Please enter minimum 10 characters";
+                return "Please enter minimum 10 characters.";
               }
             }
             if (widget.type == "cfpassword") {
               if (widget.controller.text.isEmpty) {
-                return "Please Confirm Password";
+                return "Please confirm your password.";
               } else if (widget.controller.text.length < 6) {
-                return "Please enter minimum 10 characters";
+                return "Please enter minimum 10 characters.";
               }
             }
             return null;
