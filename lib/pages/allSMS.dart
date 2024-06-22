@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:appbeebuzz/main.dart';
 import 'package:appbeebuzz/models/messages_model.dart';
-import 'package:appbeebuzz/pages/accPage.dart';
-import 'package:appbeebuzz/pages/filterPage.dart';
+import 'package:appbeebuzz/pages/acc.dart';
+import 'package:appbeebuzz/pages/messageFilter.dart';
 import 'package:appbeebuzz/pages/login.dart';
-import 'package:appbeebuzz/pages/settingPage.dart';
+import 'package:appbeebuzz/pages/setting.dart';
 import 'package:appbeebuzz/pages/showmsg.dart';
 import 'package:appbeebuzz/service/getAPI.dart';
 import 'package:appbeebuzz/style.dart';
@@ -132,8 +132,13 @@ class _AllsmsState extends State<Allsms> {
   List<SmsMessage> testSMS = [];
   Map<String, List> messagesBySenderCheck = {};
 
+  bool _isRefreshing = false;
+
   Future reload() async {
     // await loadSMS();
+    setState(() {
+      _isRefreshing = true;
+    });
     testSMS = [];
     messagesBySenderCheck = {};
     final messages = await _query.querySms(kinds: [
@@ -167,9 +172,8 @@ class _AllsmsState extends State<Allsms> {
       });
     }
 
-    var count1 =
-        areBodiesEqual(widget.listMessage, messagesBySenderCheck, "count1");
-    printBodies(widget.listMessage, messagesBySenderCheck);
+    var count1 = areBodiesEqual(widget.listMessage, messagesBySenderCheck, "count1");
+    // printBodies(widget.listMessage, messagesBySenderCheck);
 
     debugPrint(
         "จำนวน ${countMessages(widget.listMessage)} ${testSMS.length} : $count1");
@@ -189,6 +193,11 @@ class _AllsmsState extends State<Allsms> {
       messageModels = messageModels;
       debugPrint("จำนวนข้อความ2: ${testSMS.length}");
     }
+
+    // await Future.delayed(const Duration(seconds: 1));
+    setState(() {
+      _isRefreshing = false;
+    });
   }
 
   getListFilter() async {
@@ -245,9 +254,10 @@ class _AllsmsState extends State<Allsms> {
       }
     }
   }
+
   String? textstate;
 
-  getJson() async {
+  Future getJson() async {
     late String link;
     messageModels = [];
     var contacts;
@@ -301,7 +311,8 @@ class _AllsmsState extends State<Allsms> {
             state = 2;
           }
 
-          debugPrint("Model : $model | $predic Link : $textstate | $linkscore Totalscore : $score");
+          debugPrint(
+              "Model : $model | $predic Link : $textstate | $linkscore Totalscore : $score");
 
           var samename = messageModels
               .indexWhere((model) => model.name == contacts.first.displayName);
@@ -417,18 +428,17 @@ class _AllsmsState extends State<Allsms> {
 
     setState(() {
       widget.listMessage = messageModels;
-      // widget.filterTexts = filterTexts;
     });
-    for (var element in widget.listMessage) {
-      debugPrint(element.messages.first.body);
-    }
+    // for (var element in widget.listMessage) {
+    //   debugPrint("Test");
+    //   debugPrint(element.messages[0].body);
+    // }
   }
 
   Future<String?> selectModels(String sms) async {
     var res = await Data().selectmodel(sms);
     model = res!["model"].toString();
     tokenize = res["sms"].toString();
-    print(tokenize);
     return model;
   }
 
@@ -440,7 +450,6 @@ class _AllsmsState extends State<Allsms> {
       Map<String, dynamic> x;
 
       x = res?.attributes["last_analysis_stats"];
-      // debugPrint("last_analysis_stats : $x");
 
       int maxMalicious = x['malicious'] ?? 0;
       int maxSuspicious = x['suspicious'] ?? 0;
@@ -476,7 +485,6 @@ class _AllsmsState extends State<Allsms> {
     type = res?.attributes["categories"]["Webroot"];
     type ??= res?.attributes["categories"]["Forcepoint ThreatSeeker"];
     type ??= "Unkown";
-    // debugPrint("last_analysis_stats : $type");
   }
 
   double? predic;
@@ -569,56 +577,67 @@ class _AllsmsState extends State<Allsms> {
               backgroundColor: bgYellow,
               key: _scaffoldkey,
               drawer: navBar(),
-              body: SingleChildScrollView(
-                  child: Container(
-                      margin: const EdgeInsets.all(20),
-                      child: Column(children: [
-                        Container(
-                          constraints: const BoxConstraints.expand(height: 50),
-                          decoration: ShapeDecoration(
-                              color: const Color(0xFFF7F7F9),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(5))),
-                          child: AdvancedSegment(
-                            controller: _selectedSegment,
-                            segments: const {
-                              'all': 'All SMS',
-                              'fraud': 'Fraud SMS',
-                            },
-                            backgroundColor: const Color(0xFFF7F7F9),
-                            activeStyle: const TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.w600),
-                            inactiveStyle:
-                                const TextStyle(color: Color(0xFFB2B7BE)),
-                            sliderColor: Colors.white,
-                          ),
-                        ),
-                        SingleChildScrollView(
-                            child: RefreshIndicator(
-                                onRefresh: reload,
-                                child: Container(
-                                    height: 550,
-                                    margin: const EdgeInsets.only(
-                                        top: 20, bottom: 20),
-                                    decoration: ShapeDecoration(
-                                        color: Colors.white.withOpacity(0.7),
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(21))),
-                                    child: ValueListenableBuilder<String>(
-                                        valueListenable: _selectedSegment,
-                                        builder: (_, key, __) {
-                                          switch (key) {
-                                            case 'all':
-                                              return allSMS(_messages);
-                                            case 'fraud':
-                                              return fraudSMS(_messages);
-                                            default:
-                                              return const SizedBox();
-                                          }
-                                        }))))
-                      ]))))),
+              body: Stack(
+                children: [
+                  SingleChildScrollView(
+                      child: Container(
+                          margin: const EdgeInsets.all(20),
+                          child: Column(children: [
+                            Container(
+                              constraints:
+                                  const BoxConstraints.expand(height: 50),
+                              decoration: ShapeDecoration(
+                                  color: const Color(0xFFF7F7F9),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(5))),
+                              child: AdvancedSegment(
+                                controller: _selectedSegment,
+                                segments: const {
+                                  'all': 'All SMS',
+                                  'fraud': 'Fraud SMS',
+                                },
+                                backgroundColor: const Color(0xFFF7F7F9),
+                                activeStyle: const TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w600),
+                                inactiveStyle:
+                                    const TextStyle(color: Color(0xFFB2B7BE)),
+                                sliderColor: Colors.white,
+                              ),
+                            ),
+                            SingleChildScrollView(
+                                child: RefreshIndicator(
+                                    onRefresh: reload,
+                                    child: Container(
+                                        height: 550,
+                                        margin: const EdgeInsets.only(
+                                            top: 20, bottom: 20),
+                                        decoration: ShapeDecoration(
+                                            color:
+                                                Colors.white.withOpacity(0.7),
+                                            shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(21))),
+                                        child: ValueListenableBuilder<String>(
+                                            valueListenable: _selectedSegment,
+                                            builder: (_, key, __) {
+                                              switch (key) {
+                                                case 'all':
+                                                  return allSMS(_messages);
+                                                case 'fraud':
+                                                  return fraudSMS(_messages);
+                                                default:
+                                                  return const SizedBox();
+                                              }
+                                            }))))
+                          ]))),
+                  if (_isRefreshing)
+                    AbsorbPointer(
+                      absorbing: true,
+                      child: Container(color: Colors.white.withOpacity(0)),
+                    ),
+                ],
+              ))),
     );
   }
 
@@ -633,98 +652,15 @@ class _AllsmsState extends State<Allsms> {
     if (messageModels.isNotEmpty) {
       debugPrint("มีข้อมูล: ${messageModels.length} คน");
       return ListView.builder(
-        shrinkWrap: true,
-        itemCount: messageModels.length,
-        itemBuilder: (context, index) {
-          var count = messageModels[index].messages.length - 1;
-          return ListTile(
-            // tileColor: message.isRead == false ? const Color(0xFFCDE9FF) : null,
-            title: Text(messageModels[index].name,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text(messageModels[index].messages[0].body,
-                style: const TextStyle(fontFamily: "Kanit"),
-                overflow: TextOverflow.ellipsis,
-                softWrap: false,
-                maxLines: 1),
-            leading: Stack(children: [
-              Container(
-                  height: 50,
-                  width: 50,
-                  decoration: ShapeDecoration(
-                      color: const Color(0xFFCB9696),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(100))),
-                  child: messageModels[index].photo.isNotEmpty
-                      ? ClipOval(
-                          child: Image.memory(
-                              Uint8List.fromList(messageModels[index].photo),
-                              fit: BoxFit.contain))
-                      : Image.asset(
-                          "assets/images/profile.png",
-                          fit: BoxFit.fitWidth,
-                        )),
-              Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: messageModels[index].messages[0].state == 0
-                      ? Container()
-                      : Container(
-                          width: 20,
-                          height: 20,
-                          decoration: ShapeDecoration(
-                              color: messageModels[index].messages[0].state == 1
-                                  ? const Color(0xFFFCE205)
-                                  : const Color(0xFFFF2F00),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(100))),
-                          child: const Center(
-                              child: Icon(
-                                  color: Colors.white,
-                                  Icons.priority_high,
-                                  size: 18))))
-            ]),
-            onTap: () {
-              Navigator.pushReplacement(
-                  context,
-                  CupertinoPageRoute(
-                      builder: (context) => ShowMsg(
-                            messageModel: messageModels[index],
-                            listMessage: messageModels,
-                            filterTexts: filterTexts,
-                          )));
-            },
-          );
-        },
-      );
-    }
-    return FutureBuilder(
-      future: getJson(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Container(
-              alignment: Alignment.center,
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("loading...",
-                        style: TextStyle(fontFamily: "Kanit", fontSize: 15)),
-                    Container(
-                        padding: const EdgeInsets.all(10),
-                        child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation(mainScreen)))
-                  ]));
-        }
-        return ListView.builder(
           shrinkWrap: true,
           itemCount: messageModels.length,
           itemBuilder: (context, index) {
-            var count = messageModels[index].messages.length;
+            var count = 0;
             return ListTile(
               // tileColor: message.isRead == false ? const Color(0xFFCDE9FF) : null,
               title: Text(messageModels[index].name,
                   style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text(messageModels[index].messages[0].body,
+              subtitle: Text(messageModels[index].messages[count].body,
                   style: const TextStyle(fontFamily: "Kanit"),
                   overflow: TextOverflow.ellipsis,
                   softWrap: false,
@@ -740,10 +676,8 @@ class _AllsmsState extends State<Allsms> {
                     child: messageModels[index].photo.isNotEmpty
                         ? ClipOval(
                             child: Image.memory(
-                              Uint8List.fromList(messageModels[index].photo),
-                              fit: BoxFit.contain,
-                            ),
-                          )
+                                Uint8List.fromList(messageModels[index].photo),
+                                fit: BoxFit.contain))
                         : Image.asset(
                             "assets/images/profile.png",
                             fit: BoxFit.fitWidth,
@@ -751,7 +685,7 @@ class _AllsmsState extends State<Allsms> {
                 Positioned(
                     bottom: 0,
                     right: 0,
-                    child: messageModels[index].messages[0].state == 0
+                    child: messageModels[index].messages[count].state == 0
                         ? Container()
                         : Container(
                             width: 20,
@@ -782,8 +716,28 @@ class _AllsmsState extends State<Allsms> {
                             )));
               },
             );
-          },
-        );
+          });
+    }
+    return FutureBuilder(
+      future: getJson(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          debugPrint("โหลดครั้งแรก");
+          return Container(
+              alignment: Alignment.center,
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text("loading...",
+                        style: TextStyle(fontFamily: "Kanit", fontSize: 15)),
+                    Container(
+                        padding: const EdgeInsets.all(10),
+                        child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation(mainScreen)))
+                  ]));
+        }
+        return Container();
       },
     );
   }
@@ -794,8 +748,7 @@ class _AllsmsState extends State<Allsms> {
         children: [
           ListView(),
           const Center(
-            child: Text("No message", style: TextStyle(fontFamily: "Kanit")),
-          )
+              child: Text("No message", style: TextStyle(fontFamily: "Kanit")))
         ],
       );
     }
@@ -810,7 +763,7 @@ class _AllsmsState extends State<Allsms> {
               // tileColor: message.isRead == false ? const Color(0xFFCDE9FF) : null,
               title: Text(messageModels[index].name,
                   style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text(messageModels[index].messages[0].body,
+              subtitle: Text(messageModels[index].messages[count].body,
                   style: const TextStyle(fontFamily: "Kanit"),
                   overflow: TextOverflow.ellipsis,
                   softWrap: false,
@@ -837,7 +790,7 @@ class _AllsmsState extends State<Allsms> {
                 Positioned(
                     bottom: 0,
                     right: 0,
-                    child: messageModels[index].messages[0].state == 0
+                    child: messageModels[index].messages[count].state == 0
                         ? Container()
                         : Container(
                             width: 20,
@@ -897,80 +850,7 @@ class _AllsmsState extends State<Allsms> {
                 ],
               ));
         }
-        return ListView.builder(
-          shrinkWrap: true,
-          itemCount: messageModels.length,
-          itemBuilder: (context, index) {
-            var count = messageModels[index].messages.length - 1;
-            if (messageModels[index].messages[count].state != 0) {
-              return ListTile(
-                // tileColor: message.isRead == false ? const Color(0xFFCDE9FF) : null,
-                title: Text(messageModels[index].name,
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text(messageModels[index].messages[0].body,
-                    style: const TextStyle(fontFamily: "Kanit"),
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: false,
-                    maxLines: 1),
-                leading: Stack(children: [
-                  Container(
-                      height: 50,
-                      width: 50,
-                      decoration: ShapeDecoration(
-                          color: const Color(0xFFCB9696),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(100))),
-                      child: messageModels[index].photo.isNotEmpty
-                          ? ClipOval(
-                              child: Image.memory(
-                                Uint8List.fromList(messageModels[index].photo),
-                                fit: BoxFit.contain,
-                              ),
-                            )
-                          : Image.asset(
-                              "assets/images/profile.png",
-                              fit: BoxFit.fitWidth,
-                            )),
-                  Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: messageModels[index].messages[0].state == 0
-                          ? Container()
-                          : Container(
-                              width: 20,
-                              height: 20,
-                              decoration: ShapeDecoration(
-                                  color: messageModels[index]
-                                              .messages[count]
-                                              .state ==
-                                          1
-                                      ? const Color(0xFFFCE205)
-                                      : const Color(0xFFFF2F00),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(100))),
-                              child: const Center(
-                                  child: Icon(
-                                      color: Colors.white,
-                                      Icons.priority_high,
-                                      size: 18))))
-                ]),
-                onTap: () {
-                  Navigator.pushReplacement(
-                      context,
-                      CupertinoPageRoute(
-                          builder: (context) => ShowMsg(
-                                messageModel: messageModels[index],
-                                listMessage: messageModels,
-                                filterTexts: filterTexts,
-                              )));
-                },
-              );
-            } else {
-              return Container();
-            }
-          },
-        );
+        return Container();
       },
     );
   }

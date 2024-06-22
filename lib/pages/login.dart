@@ -1,5 +1,5 @@
 import 'package:appbeebuzz/main.dart';
-import 'package:appbeebuzz/pages/forgetpass.dart';
+import 'package:appbeebuzz/pages/forgotpass.dart';
 import 'package:appbeebuzz/pages/register.dart';
 import 'package:appbeebuzz/widgets/inputFormField.dart';
 import 'package:firebase_auth/firebase_auth.dart';

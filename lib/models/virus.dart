@@ -3,9 +3,6 @@ import 'dart:convert';
 List<VirusTotalModel> listFromjson(String str) => List<VirusTotalModel>.from(
     json.decode(str).map((x) => VirusTotalModel.fromJson(x)));
 
-String companyToJson(List<VirusTotalModel> data) =>
-    json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
-
 class VirusTotalModel {
   VirusTotalModel({required this.data});
 
@@ -18,48 +15,12 @@ class VirusTotalModel {
 }
 
 class Body {
-  Body({
-    required this.attributes,
-    // required this.id
-  });
+  Body({required this.attributes});
 
   Map<String, dynamic> attributes;
-  // String id;
 
-  factory Body.fromJson(Map<String, dynamic> jSon) => Body(
-        attributes: Map<String, dynamic>.from(jSon["attributes"]),
-        // id: jSon["id"].toString()
-      );
+  factory Body.fromJson(Map<String, dynamic> jSon) =>
+      Body(attributes: Map<String, dynamic>.from(jSon["attributes"]));
 
-  Map<String, dynamic> toJson() => {
-        "attributes": attributes,
-        // "id": id
-      };
+  Map<String, dynamic> toJson() => {"attributes": attributes};
 }
-
-// class Attributes {
-//   Attributes({required this.categories});
-
-//   Categories categories;
-
-//   factory Attributes.fromJson(Map<String, dynamic> jSon) =>
-//       Attributes(categories: Categories.fromJson(jSon["categories"]));
-
-//   Map<String, dynamic> toJson() => {
-//         'categories': categories.toJson(),
-//       };
-// }
-
-// class Categories {
-//   Categories({required this.bitDefender});
-
-//   String bitDefender;
-
-//   factory Categories.fromJson(Map<String, dynamic> json) => Categories(
-//         bitDefender: json["BitDefender"].toString(),
-//       );
-
-//   Map<String, dynamic> toJson() => {
-//         'BitDefender': bitDefender,
-//       };
-// }

@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 
 class AuthMethods {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -34,13 +35,14 @@ class AuthMethods {
           'profilePhoto': user.photoURL,
           'email': user.email,
           'providers': user.providerData[0].providerId,
-          'filter' : []
+          'filter': []
         });
-        print("User signed in with UID: ${user.displayName!} && ${user.providerData}");
+        debugPrint(
+            "User signed in with UID: ${user.displayName!} && ${user.providerData}");
         res = true;
       }
     } catch (e) {
-      print("Error during sign-in: $e"); // Log error message for debugging
+      debugPrint("Error during sign-in: $e"); // Log error message for debugging
       res = false;
     }
     return res;
@@ -51,22 +53,17 @@ class AuthMethods {
       try {
         await googleSignIn.disconnect();
         _auth.signOut();
-        print("ออกจากระบบสำเร็จ by google");
+        debugPrint("ออกจากระบบสำเร็จ by google");
       } catch (e) {
-        print("ออกจากระบบไม่สำเร็จ");
-        print(e);
+        debugPrint(e.toString());
       }
-    } else if (providers == 'password') {
+    } else {
       try {
         await _auth.signOut();
-        print("ออกจากระบบสำเร็จ by password");
+        debugPrint("ออกจากระบบสำเร็จ by password");
       } catch (e) {
-        print("ออกจากระบบไม่สำเร็จ");
-        print(e);
+        debugPrint(e.toString());
       }
-    } else if (providers == 'phone'){
-      await _auth.signOut();
     }
   }
-
 }

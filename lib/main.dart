@@ -110,10 +110,10 @@ void main() async {
     selectedNotificationPayload =
         notificationAppLaunchDetails!.notificationResponse?.payload;
     initialRoute = ShowstaticFromNoti.routeName;
-    debugPrint("initialRoute: $initialRoute");
+    debugPrint("initialRoute: 1 $initialRoute");
   } else {
     initialRoute = Main.routeName;
-    debugPrint("initialRoute: $initialRoute");
+    debugPrint("initialRoute: 2 $initialRoute");
   }
 
   const AndroidInitializationSettings initializationSettingsAndroid =
@@ -147,7 +147,7 @@ void main() async {
       debugShowCheckedModeBanner: false,
       initialRoute: initialRoute,
       routes: <String, WidgetBuilder>{
-        Main.routeName: (_) => Main(),
+        Main.routeName: (_) => const Main(),
         ShowstaticFromNoti.routeName: (_) =>
             ShowstaticFromNoti(selectedNotificationPayload)
       }));
@@ -270,9 +270,9 @@ class _MainState extends State<Main> {
   }
 
   void _configureSelectNotificationSubject() {
-    print("Notiti");
+    debugPrint("Notiti");
     selectNotificationStream.stream.listen((String? payload) async {
-      print("payload : $payload");
+      // print("payload : $payload");
       // await Navigator.of(context).pushNamed(ShowstaticFromNoti.routeName, arguments: payload);
       await Navigator.of(context).push(MaterialPageRoute<void>(
         builder: (BuildContext context) => ShowstaticFromNoti(payload),
@@ -301,9 +301,7 @@ class _MainState extends State<Main> {
   splitText(String msg) async {
     link = '';
     text = '';
-    print(msg);
-    RegExp regExp = RegExp(
-        r"(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)");
+    RegExp regExp = RegExp(r"(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)");
     matches = regExp.allMatches(msg);
     for (final m in matches) {
       link = m[0];
@@ -423,38 +421,25 @@ class _MainState extends State<Main> {
       score = linkscore * 100;
       predic = 0;
       model = "link";
-      print("Predic 1: $text || $model || $linkscore || Total predic: $score");
     } else if (text.toString().isNotEmpty && link.isEmpty) {
       model = await selectModels(msg);
       if (model == "english") {
-        predic = await _classifier.classify(
-            tokenize, "en_ta_gru_w2v.tflite", 'en_ta_w2v_vocab.txt', 79);
+        predic = await _classifier.classify(tokenize, "en_ta_gru_w2v.tflite", 'en_ta_w2v_vocab.txt', 79);
         score = (predic! * 100);
-        print(
-            "Predic 2: $text || $model || $linkscore || Total predic: $score");
       }
       if (model == "thai") {
-        predic = await _classifier.classify(
-            tokenize, "th_lstm_grid.tflite", 'thai_vocab.txt', 109);
+        predic = await _classifier.classify(tokenize, "th_lstm_grid.tflite", 'thai_vocab.txt', 109);
         score = predic! * 100;
-        print(
-            "Predic 3: $text || $model || $linkscore || Total predic: $score");
       }
     } else if (text.toString().isNotEmpty && link.isNotEmpty) {
       model = await selectModels(msg);
       if (model == "english") {
-        predic = await _classifier.classify(
-            tokenize, "en_ta_gru_w2v.tflite", 'en_ta_w2v_vocab.txt', 79);
+        predic = await _classifier.classify(tokenize, "en_ta_gru_w2v.tflite", 'en_ta_w2v_vocab.txt', 79);
         score = (predic! * 50) + (linkscore * 50);
-        print(
-            "Predic 4: $text || $model || $linkscore || Total predic: $score");
       }
       if (model == "thai") {
-        predic = await _classifier.classify(
-            tokenize, "th_lstm_grid.tflite", 'thai_vocab.txt', 109);
+        predic = await _classifier.classify(tokenize, "th_lstm_grid.tflite", 'thai_vocab.txt', 109);
         score = (predic! * 50) + (linkscore * 50);
-        print(
-            "Predic 5: $text || $model || $linkscore || Total predic: $score");
       }
     }
     return score;
