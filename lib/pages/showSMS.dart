@@ -1,7 +1,7 @@
 import 'package:appbeebuzz/models/messages_model.dart';
 import 'package:appbeebuzz/pages/allSMS.dart';
 import 'package:appbeebuzz/constant.dart';
-import 'package:appbeebuzz/pages/static.dart';
+import 'package:appbeebuzz/pages/showResult.dart';
 import 'package:appbeebuzz/style.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';

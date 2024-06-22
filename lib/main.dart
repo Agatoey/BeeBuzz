@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:appbeebuzz/constant.dart';
-import 'package:appbeebuzz/pages/staticFromNoti.dart';
+import 'package:appbeebuzz/pages/showResultFromNoti.dart';
 import 'package:appbeebuzz/service/getAPI.dart';
 import 'package:appbeebuzz/utils/classify.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

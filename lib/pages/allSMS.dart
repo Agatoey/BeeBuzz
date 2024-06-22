@@ -5,7 +5,7 @@ import 'package:appbeebuzz/pages/acc.dart';
 import 'package:appbeebuzz/pages/messageFilter.dart';
 import 'package:appbeebuzz/pages/login.dart';
 import 'package:appbeebuzz/pages/setting.dart';
-import 'package:appbeebuzz/pages/showmsg.dart';
+import 'package:appbeebuzz/pages/showSMS.dart';
 import 'package:appbeebuzz/service/getAPI.dart';
 import 'package:appbeebuzz/style.dart';
 import 'package:appbeebuzz/utils/auth_methods.dart';

@@ -1,7 +1,7 @@
 import 'package:appbeebuzz/constant.dart';
 import 'package:appbeebuzz/models/messages_model.dart';
 import 'package:appbeebuzz/models/virus.dart';
-import 'package:appbeebuzz/pages/showmsg.dart';
+import 'package:appbeebuzz/pages/showSMS.dart';
 import 'package:appbeebuzz/style.dart';
 import 'package:arc_progress_bar_new/arc_progress_bar_new.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

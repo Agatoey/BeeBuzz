@@ -1,5 +1,5 @@
 import 'package:appbeebuzz/main.dart';
-import 'package:appbeebuzz/pages/forgotpass.dart';
+import 'package:appbeebuzz/pages/forgotPass.dart';
 import 'package:appbeebuzz/pages/register.dart';
 import 'package:appbeebuzz/widgets/inputFormField.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -290,21 +290,17 @@ class _LoginPageState extends State<LoginPage> {
         // margin: const EdgeInsets.symmetric(vertical: 20),
         child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
       TextButton(
-        // style: ButtonStyle.styleFrom(
-
-        // ),
-        child: const Text("Forgot Password?",
-            style: TextStyle(
-                color: Color(0xFFDB5757),
-                fontSize: 10,
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w400,
-                height: 0.15)),
-        onPressed: () {
-          Navigator.pushReplacement(context,
-              MaterialPageRoute(builder: (context) => const FogetPass()));
-        },
-      )
+          child: const Text("Forgot Password?",
+              style: TextStyle(
+                  color: Color(0xFFDB5757),
+                  fontSize: 10,
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w400,
+                  height: 0.15)),
+          onPressed: () {
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (context) => const FogetPass()));
+          })
     ]));
   }
 

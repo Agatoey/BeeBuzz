@@ -1,6 +1,6 @@
 import 'package:appbeebuzz/constant.dart';
 import 'package:appbeebuzz/pages/login.dart';
-import 'package:appbeebuzz/pages/OTPreader.dart';
+import 'package:appbeebuzz/pages/otpReader.dart';
 import 'package:appbeebuzz/style.dart';
 import 'package:appbeebuzz/utils/auth_methods.dart';
 import 'package:appbeebuzz/widgets/inputFormField.dart';
