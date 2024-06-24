@@ -48,6 +48,8 @@ class AuthMethods {
     return res;
   }
 
+  
+
   Future<void> signOut(var providers) async {
     if (providers == 'google.com') {
       try {

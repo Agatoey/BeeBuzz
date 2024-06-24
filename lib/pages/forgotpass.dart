@@ -103,23 +103,8 @@ class _FogetPassState extends State<FogetPass> {
               ),
             ),
           )
-          // Container(
-          //     margin: const EdgeInsets.only(top: 12),
-          //     child: TextButton(
-          //       onPressed: () async {
-          //         resetPassword();
-          //       },
-          //       child: Text(
-          //         "Click reset password again",
-          //         style: TextStyle(
-          //           fontSize: 14,
-          //           fontWeight: FontWeight.bold,
-          //           color: mainScreen,
-          //         ),
-          //       ),
-          //     ))
-        ],
-      ),
+        ]
+      )
     );
   }
 
@@ -127,8 +112,7 @@ class _FogetPassState extends State<FogetPass> {
     try {
       await FirebaseAuth.instance
           .sendPasswordResetEmail(email: emailController.text.trim());
-      errrorText(
-          "A password reset email has been sent. Please check your inbox.",
+      errrorText("A password reset email has been sent. Please check your inbox.",
           Colors.green[100]);
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (context) => LoginPage()));

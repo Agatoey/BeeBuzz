@@ -1,4 +1,4 @@
-import 'package:appbeebuzz/models/messages_model.dart';
+import 'package:appbeebuzz/models/messages.dart';
 import 'package:appbeebuzz/pages/allSMS.dart';
 import 'package:appbeebuzz/pages/login.dart';
 import 'package:appbeebuzz/style.dart';
@@ -91,7 +91,6 @@ class _AccPageState extends State<AccPage> {
                     children: [
                       Container(
                         margin: const EdgeInsets.symmetric(horizontal: 40),
-                        // width: 350,
                         height: 320,
                         decoration: ShapeDecoration(
                           color: const Color(0xFFFDF9ED),
@@ -150,7 +149,6 @@ class _AccPageState extends State<AccPage> {
                                           const Color(0xFFFFA031)
                                         ],
                                       ),
-                                      // color: const Color(0xFFFFA031),
                                       shape: RoundedRectangleBorder(
                                           borderRadius:
                                               BorderRadius.circular(100)),
@@ -192,12 +190,6 @@ class _AccPageState extends State<AccPage> {
             title: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Padding(
-                //     padding: EdgeInsets.all(5),
-                //     child: SizedBox(
-                //         width: 20,
-                //         height: 20,
-                //         child: Icon(Icons.close, size: 20))),
                 Padding(
                     padding: EdgeInsets.only(top: 10),
                     child: Center(
@@ -242,9 +234,7 @@ class _AccPageState extends State<AccPage> {
                                     .collection('users')
                                     .doc(userid)
                                     .delete();
-                                var provider;
                                 _auth.signOut();
-                                // AuthMethods().signOut(provider);
                                 Navigator.pushReplacement(
                                     context,
                                     MaterialPageRoute(

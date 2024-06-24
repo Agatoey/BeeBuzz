@@ -1,5 +1,5 @@
 import 'package:appbeebuzz/constant.dart';
-import 'package:appbeebuzz/models/messages_model.dart';
+import 'package:appbeebuzz/models/messages.dart';
 import 'package:appbeebuzz/pages/allSMS.dart';
 import 'package:appbeebuzz/style.dart';
 import 'package:appbeebuzz/widgets/chip_tag.dart';

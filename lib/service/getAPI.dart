@@ -18,10 +18,6 @@ class Data {
 
       if (response.statusCode == 200) {
         Map<String, dynamic> json = jsonDecode(await response.stream.bytesToString());
-        // JsonEncoder encoder = const JsonEncoder.withIndent('  ');
-        // String prettyprint = encoder.convert(json);
-        // var model = json["model"].toString();
-        // print(prettyprint);
         return json;
       } else {
         debugPrint("Error Selectmodel ${response.reasonPhrase}");

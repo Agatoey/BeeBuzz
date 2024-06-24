@@ -1,5 +1,5 @@
 import 'package:appbeebuzz/constant.dart';
-import 'package:appbeebuzz/models/messages_model.dart';
+import 'package:appbeebuzz/models/messages.dart';
 import 'package:appbeebuzz/models/virus.dart';
 import 'package:appbeebuzz/pages/showSMS.dart';
 import 'package:appbeebuzz/style.dart';

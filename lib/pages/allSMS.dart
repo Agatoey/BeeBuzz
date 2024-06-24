@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:appbeebuzz/main.dart';
-import 'package:appbeebuzz/models/messages_model.dart';
+import 'package:appbeebuzz/models/messages.dart';
 import 'package:appbeebuzz/pages/acc.dart';
 import 'package:appbeebuzz/pages/messageFilter.dart';
 import 'package:appbeebuzz/pages/login.dart';
@@ -86,7 +86,6 @@ class _AllsmsState extends State<Allsms> {
       List<MessageModel> list1, Map<String, List> list2, String c) {
     List x = [];
     List y = [];
-    // print(c);
     for (int i = 0; i < list1.length; i++) {
       for (int j = 0; j < list1[i].messages.length; j++) {
         x.add(list1[i].messages[j].body);
@@ -135,7 +134,6 @@ class _AllsmsState extends State<Allsms> {
   bool _isRefreshing = false;
 
   Future reload() async {
-    // await loadSMS();
     setState(() {
       _isRefreshing = true;
     });
@@ -173,12 +171,9 @@ class _AllsmsState extends State<Allsms> {
     }
 
     var count1 = areBodiesEqual(widget.listMessage, messagesBySenderCheck, "count1");
-    // printBodies(widget.listMessage, messagesBySenderCheck);
+    debugPrint("จำนวน ${countMessages(widget.listMessage)} ${testSMS.length} : $count1");
 
-    debugPrint(
-        "จำนวน ${countMessages(widget.listMessage)} ${testSMS.length} : $count1");
     if (count1 == false ||
-        // count2 == false ||
         messageModels.isEmpty ||
         widget.listMessage.isEmpty) {
       loadSMS();
@@ -186,8 +181,7 @@ class _AllsmsState extends State<Allsms> {
       debugPrint("โหลดใหม่");
     }
     if (widget.listMessage.isNotEmpty && count1) {
-      debugPrint(
-          "จำนวนข้อความ1: ${countMessages(widget.listMessage)} ${testSMS.length} : $count1");
+      debugPrint("จำนวนข้อความ1: ${countMessages(widget.listMessage)} ${testSMS.length} : $count1");
       messageModels = widget.listMessage;
     } else if (messageModels.isNotEmpty) {
       messageModels = messageModels;
@@ -375,8 +369,6 @@ class _AllsmsState extends State<Allsms> {
             type ??= "Unkown";
           }
 
-          // print("text : $text");
-          // print("Link : $link");
           model = "";
           score = await prediction(text, link, msg.body);
 
@@ -429,10 +421,6 @@ class _AllsmsState extends State<Allsms> {
     setState(() {
       widget.listMessage = messageModels;
     });
-    // for (var element in widget.listMessage) {
-    //   debugPrint("Test");
-    //   debugPrint(element.messages[0].body);
-    // }
   }
 
   Future<String?> selectModels(String sms) async {
@@ -491,26 +479,21 @@ class _AllsmsState extends State<Allsms> {
   Future<double> prediction(String text, String link, String msg) async {
     predic = 0;
     double score = 0;
-    // linkscore = 1; //test
-    // print("linkscore : $linkscore");
     if (text == "Text" && link.isNotEmpty) {
       score = linkscore * 100;
       predic = 0;
       model = "link";
-      // print("Predic 1: $text || $model || $linkscore || Total predic: $score");
     } else if (text.toString().isNotEmpty && link.isEmpty) {
       model = await selectModels(msg);
       if (model == "english") {
         predic = await _classifier.classify(
             tokenize, "en_ta_gru_w2v.tflite", 'en_ta_w2v_vocab.txt', 79);
         score = (predic! * 100);
-        // print("Predic 2: $text || $model || $linkscore || Total predic: $score");
       }
       if (model == "thai") {
         predic = await _classifier.classify(
             tokenize, "th_lstm_grid.tflite", 'thai_vocab.txt', 109);
         score = predic! * 100;
-        // print("Predic 3: $text || $model || $linkscore || Total predic: $score");
       }
     } else if (text.toString().isNotEmpty && link.isNotEmpty) {
       model = await selectModels(msg);
@@ -518,13 +501,11 @@ class _AllsmsState extends State<Allsms> {
         predic = await _classifier.classify(
             tokenize, "en_ta_gru_w2v.tflite", 'en_ta_w2v_vocab.txt', 79);
         score = (predic! * 50) + (linkscore * 50);
-        // print("Predic 4: $text || $model || $linkscore || Total predic: $score");
       }
       if (model == "thai") {
         predic = await _classifier.classify(
             tokenize, "th_lstm_grid.tflite", 'thai_vocab.txt', 109);
         score = (predic! * 50) + (linkscore * 50);
-        // print("Predic 5: $text || $model || $linkscore || Total predic: $score");
       }
     }
     return score;
@@ -548,7 +529,6 @@ class _AllsmsState extends State<Allsms> {
               curve: Curves.linear,
               reverseCurve: Curves.linear);
         } else {
-          // Navigator.of(context).pop();
           SystemNavigator.pop();
         }
       },
@@ -566,12 +546,6 @@ class _AllsmsState extends State<Allsms> {
                     _scaffoldkey.currentState?.openEndDrawer();
                   }
                 }),
-            // actions: [
-            //   IconButton(
-            //     icon: const Icon(Icons.search, color: Colors.white),
-            //     onPressed: () {},
-            //   )
-            // ]
           ),
           body: Scaffold(
               backgroundColor: bgYellow,
@@ -650,7 +624,6 @@ class _AllsmsState extends State<Allsms> {
       ]);
     }
     if (messageModels.isNotEmpty) {
-      debugPrint("มีข้อมูล: ${messageModels.length} คน");
       return ListView.builder(
           shrinkWrap: true,
           itemCount: messageModels.length,
@@ -868,19 +841,19 @@ class _AllsmsState extends State<Allsms> {
                     fontSize: 14,
                     fontFamily: 'Inter')),
           ),
-          ListTile(
-              leading:
-                  FaIcon(FontAwesomeIcons.envelope, size: 20, color: grayBar),
-              title: Text('Message', style: textBar),
-              onTap: () {
-                Navigator.pushReplacement(
-                    context,
-                    CupertinoPageRoute(
-                        builder: (context) => Allsms(
-                              listMessage: widget.listMessage,
-                              filterTexts: filterTexts,
-                            )));
-              }),
+          // ListTile(
+          //     leading:
+          //         FaIcon(FontAwesomeIcons.envelope, size: 20, color: grayBar),
+          //     title: Text('Message', style: textBar),
+          //     onTap: () {
+          //       Navigator.pushReplacement(
+          //           context,
+          //           CupertinoPageRoute(
+          //               builder: (context) => Allsms(
+          //                     listMessage: widget.listMessage,
+          //                     filterTexts: filterTexts,
+          //                   )));
+          //     }),
           ListTile(
             leading: FaIcon(UniconsLine.user, size: 20, color: grayBar),
             title: Text('Account', style: textBar),

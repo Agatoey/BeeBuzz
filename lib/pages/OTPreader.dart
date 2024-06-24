@@ -6,7 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_styled_toast/flutter_styled_toast.dart';
-import 'package:pinput/pinput.dart';
+// import 'package:pinput/pinput.dart';
 
 class OTPreader extends StatefulWidget {
   const OTPreader(
@@ -37,8 +37,8 @@ class _OTPreaderState extends State<OTPreader> {
             onPressed: () {
               Navigator.pushReplacement(context,
                   MaterialPageRoute(builder: (context) => const Register()));
-            },
-          ),
+            }
+          )
         ),
         body: Scaffold(backgroundColor: bgYellow, body: test()));
   }
@@ -99,19 +99,16 @@ class _OTPreaderState extends State<OTPreader> {
                             .set({
                           'username': widget.phoneNumber,
                           'uid': value.user?.uid,
-                          'profilePhoto':
-                              "https://cdn-icons-png.freepik.com/512/4945/4945750.png",
+                          'profilePhoto': "https://cdn-icons-png.freepik.com/512/4945/4945750.png",
                           'email': "-",
                           'providers': "phone",
                           'filter': []
                         });
                         value.user?.updateDisplayName(widget.phoneNumber);
                         value.user?.verifyBeforeUpdateEmail("-");
-                        value.user!.updatePhotoURL(
-                            'https://cdn-icons-png.freepik.com/512/4945/4945750.png');
+                        value.user!.updatePhotoURL('https://cdn-icons-png.freepik.com/512/4945/4945750.png');
 
-                        errrorText(
-                            "Registration complete.", Colors.green[100]!);
+                        errrorText("Registration complete.", Colors.green[100]!);
 
                         Navigator.pushReplacement(
                             context,
@@ -140,7 +137,7 @@ class _OTPreaderState extends State<OTPreader> {
                           style: TextStyle(
                               color: Color(0xFFF7F7F9),
                               fontSize: 20,
-                              fontFamily: 'Poppins',
+                              fontFamily: 'Inter',
                               fontWeight: FontWeight.w600,
                               height: 0.17))))),
           Container(
@@ -149,6 +146,7 @@ class _OTPreaderState extends State<OTPreader> {
               "Didn't receive any code?",
               style: TextStyle(
                 fontSize: 14,
+                fontFamily: 'Inter',
                 fontWeight: FontWeight.bold,
                 color: Colors.black38,
               ),
@@ -160,6 +158,7 @@ class _OTPreaderState extends State<OTPreader> {
               "Resend New Code",
               style: TextStyle(
                 fontSize: 14,
+                fontFamily: 'Inter',
                 fontWeight: FontWeight.bold,
                 color: mainScreen,
               ),

@@ -78,40 +78,34 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget newLogin() {
     return Scaffold(
-      key: scaffoldKey,
-      backgroundColor: bgYellow,
-      body: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+        key: scaffoldKey,
+        backgroundColor: bgYellow,
+        body: Center(
+            child: SingleChildScrollView(
+                child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
               Center(
-                child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      color: Colors.white,
-                    ),
-                    margin: const EdgeInsets.all(20),
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        buildLogo(),
-                        loginGoogle(),
-                        divider(),
-                        loginSelect(),
-                      ],
-                    )),
-              ),
+                  child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.white,
+                      ),
+                      margin: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            buildLogo(),
+                            loginGoogle(),
+                            divider(),
+                            loginSelect()
+                          ]))),
               register()
-            ],
-          ),
-        ),
-      ),
-    );
+            ]))));
   }
 
   Widget buildLogo() {
@@ -129,27 +123,26 @@ class _LoginPageState extends State<LoginPage> {
           margin: const EdgeInsets.only(top: 11),
           alignment: Alignment.topLeft,
           child: const Image(
-              image: AssetImage('assets/images/Beebuzz-logo.png'), height: 30))
+              height: 30, image: AssetImage('assets/images/Beebuzz-logo.png')))
     ]);
   }
 
   Widget loginGoogle() {
     return Container(
-        constraints: const BoxConstraints.expand(height: 45),
-        margin: const EdgeInsets.only(top: 12),
         height: 45,
+        margin: const EdgeInsets.only(top: 12),
+        constraints: const BoxConstraints.expand(height: 45),
         decoration: ShapeDecoration(
-          color: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          shadows: const [
-            BoxShadow(
-              color: Color(0x1C000000),
-              blurRadius: 15,
-              offset: Offset(0, 4),
-              spreadRadius: 0,
-            )
-          ],
-        ),
+            color: Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shadows: const [
+              BoxShadow(
+                  color: Color(0x1C000000),
+                  blurRadius: 15,
+                  offset: Offset(0, 4),
+                  spreadRadius: 0)
+            ]),
         child: SignInButton(
           text: "Continue with google",
           Buttons.google,
@@ -200,7 +193,7 @@ class _LoginPageState extends State<LoginPage> {
             type: "email",
             controller: emailController),
         buildTextFieldPassword(),
-        isCheckbox(),
+        forgotPass(),
         buildButtonLogin("email")
       ]),
     );
@@ -279,15 +272,14 @@ class _LoginPageState extends State<LoginPage> {
                   type: "otp",
                   controller: otpController),
             )),
-        isCheckbox(),
+        forgotPass(),
         buildButtonLogin("phone")
       ],
     );
   }
 
-  Widget isCheckbox() {
+  Widget forgotPass() {
     return Container(
-        // margin: const EdgeInsets.symmetric(vertical: 20),
         child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
       TextButton(
           child: const Text("Forgot Password?",
@@ -385,9 +377,6 @@ class _LoginPageState extends State<LoginPage> {
         margin: const EdgeInsets.only(top: 10),
         constraints: const BoxConstraints.expand(height: 40),
         decoration: ShapeDecoration(
-            // color: phoneNumberController.text.trim().length != 10
-            //     ? const Color(0xFFD7D7D7)
-            //     : mainScreen,
             color: mainScreen,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
